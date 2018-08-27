@@ -1301,7 +1301,9 @@ void AdrUdrProduct::subscribe() {
     // also publish sensor_msgs::Imu
     gps.subscribe<ublox_msgs::EsfMEAS>(boost::bind(
       &AdrUdrProduct::callbackEsfMEAS, this, _1), kSubscribeRate);
- 
+    gps.subscribe<ublox_msgs::EsfRAW>(boost::bind(
+      &AdrUdrProduct::callbackEsfRAW, this, _1), kSubscribeRate);
+  
   // Subscribe to ESF Raw messages
   nh->param("publish/esf/raw", enabled["esf_raw"], enabled["esf"]);
   if (enabled["esf_raw"])
@@ -1430,6 +1432,65 @@ void AdrUdrProduct::callbackEsfMEAS(const ublox_msgs::EsfMEAS &m) {
   
   updater->force_update();
 }
+
+void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
+  if (enabled["esf_raw"]) {
+    static ros::Publisher imu_pub = 
+	nh->advertise<sensor_msgs::Imu>("imu_raw", kROSQueueSize);
+    
+    imu_.header.stamp = ros::Time::now();
+    imu_.header.frame_id = frame_id;
+    
+    float deg_per_sec = pow(2, -12);
+    float m_per_sec_sq = pow(2, -10);
+    float deg_c = 1e-2;
+    
+    ublox_msgs::EsfRAW_Block esfRawBlock; 
+    uint32_t imu_data;
+    uint32_t sensor_time;
+
+    for (int i=0; i < m.blocks.size(); i++){
+      esfRawBlock = m.blocks[i]; 
+      imu_data = esfRawBlock.data;
+      sensor_time = esfRawBlock.sTtag;
+
+      unsigned int data_type = imu_data >> 24; //grab the last six bits of data
+      int data_sign = ((imu_data >> 23) & 1); //grab the sign (+/-) of the data value
+      int32_t data_value = (data_sign ? 0xFF800000 : 0x0) | (imu_data & 0x7FFFFF); //extend 24-bit signed to 32-bit signed by cloning the sign bit to the highest 9 bits
+      
+      //ROS_INFO("data sign (+/-): %i", data_sign); //either 1 or 0....set by bit 23 in the data bitarray
+  
+      imu_.orientation_covariance[0] = -1;
+      imu_.linear_acceleration_covariance[0] = -1;
+      imu_.angular_velocity_covariance[0] = -1;
+
+      if (data_type == 14) {
+        imu_.angular_velocity.x = data_value * deg_per_sec;
+      } else if (data_type == 16) {
+        imu_.linear_acceleration.x = data_value * m_per_sec_sq;
+      } else if (data_type == 13) {
+        imu_.angular_velocity.y = data_value * deg_per_sec;
+      } else if (data_type == 17) {
+        imu_.linear_acceleration.y = data_value * m_per_sec_sq;
+      } else if (data_type == 5) {
+        imu_.angular_velocity.z = data_value * deg_per_sec;
+      } else if (data_type == 18) {
+        imu_.linear_acceleration.z = data_value * m_per_sec_sq;
+      } else if (data_type == 12) {
+        //ROS_INFO("Temperature in celsius: %f", data_value * deg_c); 
+      } else {
+        ROS_INFO("data_type: %u", data_type);
+        ROS_INFO("data_value: %u", data_value);
+      } 
+      
+      //ROS_DEBUG("Sensor Time Tag: %u", sensor_time);
+      imu_pub.publish(imu_);
+    }
+  }
+  
+  updater->force_update();
+}
+
 //
 // u-blox High Precision GNSS Reference Station
 //

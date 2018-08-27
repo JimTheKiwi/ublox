@@ -1073,6 +1073,7 @@ class AdrUdrProduct: public virtual ComponentInterface {
 
   void callbackHnrPVT(const ublox_msgs::HnrPVT &m);
   void callbackEsfMEAS(const ublox_msgs::EsfMEAS &m);
+  void callbackEsfRAW(const ublox_msgs::EsfRAW &m);
 };
 
 /**
