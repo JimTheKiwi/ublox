@@ -1386,11 +1386,9 @@ void AdrUdrProduct::callbackEsfMEAS(const ublox_msgs::EsfMEAS &m) {
       int data_sign = ((imu_data[i] >> 23) & 1); //grab the sign (+/-) of the data value
       int32_t data_value = (data_sign ? 0xFF800000 : 0x0) | (imu_data[i] & 0x7FFFFF); //extend 24-bit signed to 32-bit signed by cloning the sign bit to the highest 9 bits
       
-      //ROS_INFO("data sign (+/-): %i", data_sign); //either 1 or 0....set by bit 23 in the data bitarray
-  
       imu_.orientation_covariance[0] = -1;
-      imu_.linear_acceleration_covariance[0] = -1;
-      imu_.angular_velocity_covariance[0] = -1;
+      // imu_.linear_acceleration_covariance[0] = -1;
+      // imu_.angular_velocity_covariance[0] = -1;
 
       if (data_type == 14) {
         imu_.angular_velocity.x = data_value * deg_per_sec;
@@ -1448,22 +1446,30 @@ void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
     ublox_msgs::EsfRAW_Block esfRawBlock; 
     uint32_t imu_data;
     uint32_t sensor_time;
+    uint32_t this_sensor_time = 0;
 
     for (int i=0; i < m.blocks.size(); i++){
       esfRawBlock = m.blocks[i]; 
       imu_data = esfRawBlock.data;
       sensor_time = esfRawBlock.sTtag;
 
+      if (this_sensor_time == 0) {
+        this_sensor_time = sensor_time;
+      } else if (sensor_time != this_sensor_time) {
+        // the imu_raw message has many imu measurements in one message
+        // when the sensor_time changes, this means it has moved onto the next imu measurement
+        // publish the data everytime we move to next measurement
+        imu_pub.publish(imu_);
+      }
+
       unsigned int data_type = imu_data >> 24; //grab the last six bits of data
       int data_sign = ((imu_data >> 23) & 1); //grab the sign (+/-) of the data value
       int32_t data_value = (data_sign ? 0xFF800000 : 0x0) | (imu_data & 0x7FFFFF); //extend 24-bit signed to 32-bit signed by cloning the sign bit to the highest 9 bits
       
-      //ROS_INFO("data sign (+/-): %i", data_sign); //either 1 or 0....set by bit 23 in the data bitarray
-  
       imu_.orientation_covariance[0] = -1;
-      imu_.linear_acceleration_covariance[0] = -1;
-      imu_.angular_velocity_covariance[0] = -1;
-
+      // imu_.linear_acceleration_covariance[0] = -1;
+      // imu_.angular_velocity_covariance[0] = -1;
+        
       if (data_type == 14) {
         imu_.angular_velocity.x = data_value * deg_per_sec;
       } else if (data_type == 16) {
@@ -1481,11 +1487,10 @@ void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
       } else {
         ROS_INFO("data_type: %u", data_type);
         ROS_INFO("data_value: %u", data_value);
-      } 
-      
-      //ROS_DEBUG("Sensor Time Tag: %u", sensor_time);
-      imu_pub.publish(imu_);
+      }
     }
+    // publish the last data blocks...
+    imu_pub.publish(imu_);
   }
   
   updater->force_update();
