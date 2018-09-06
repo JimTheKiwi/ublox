@@ -1321,60 +1321,16 @@ void AdrUdrProduct::subscribe() {
   if (enabled["hnr_pvt"])
     gps.subscribe<ublox_msgs::HnrPVT>(boost::bind(
         publish<ublox_msgs::HnrPVT>, _1, "hnrpvt"), kSubscribeRate);
-    // also publish nav_msgs::Odometry 
-    gps.subscribe<ublox_msgs::HnrPVT>(boost::bind(
-      &AdrUdrProduct::callbackHnrPVT, this, _1), kSubscribeRate);
   
-}
-
-void AdrUdrProduct::callbackHnrPVT(const ublox_msgs::HnrPVT &m) {
-  if (enabled["hnr_pvt"]) {
-    static ros::Publisher odo_pub =
-      nh->advertise<nav_msgs::Odometry>("odom", kROSQueueSize);
-    
-    geometry_msgs::Quaternion odom_quat;
-
-    odom_.header.stamp = ros::Time::now();
-    odom_.header.frame_id = frame_id;
-   
-    uint32_t time = m.iTOW;
-    uint8_t gps_status = m.gpsFix;
-    // position
-    int32_t lat_ = m.lat * 1e-7;  // deg
-    int32_t lon_ = m.lon * 1e-7;  // deg
-    int32_t height_ = m.hMSL; //mm
-    // velocity 2D ******************************************
-    int32_t gSpeed_ = m.gSpeed; // mm/sec
-    int32_t motion_heading_ = m.headMot * 1e-5; // deg
-    
-    /* 
-    ROS_INFO("GPS TOW: %u", time);
-    ROS_INFO("gpsFix status: %u", gps_status);
-    ROS_INFO("Latitude:  %i", lat_);
-    ROS_INFO("Longitude: %i", lon_);
-    ROS_INFO("heightMSL: %i", height_);
-    */
-
-    // set the position
-    odom_.pose.pose.position.x = lat_;
-    odom_.pose.pose.position.y = lon_;
-    odom_.pose.pose.position.z = height_;
-
-    // set the velocity
-    //odom_.twist.twist.linear.x = 
-    odo_pub.publish(odom_);
-  }
 }
 
 void AdrUdrProduct::callbackEsfMEAS(const ublox_msgs::EsfMEAS &m) {
   if (enabled["esf_meas"]) {
-    static ros::Publisher imu_pub = 
+    static ros::Publisher imu_meas_pub = 
 	nh->advertise<sensor_msgs::Imu>("imu_meas", kROSQueueSize);
-    static ros::Publisher time_ref_pub =
-	nh->advertise<sensor_msgs::TimeReference>("interrupt_time", kROSQueueSize);
     
-    imu_.header.stamp = ros::Time::now();
-    imu_.header.frame_id = frame_id;
+    imu_meas_.header.stamp = ros::Time::now();
+    imu_meas_.header.frame_id = frame_id;
     
     float deg_per_sec = pow(2, -12);
     float m_per_sec_sq = pow(2, -10);
@@ -1386,22 +1342,20 @@ void AdrUdrProduct::callbackEsfMEAS(const ublox_msgs::EsfMEAS &m) {
       int data_sign = ((imu_data[i] >> 23) & 1); //grab the sign (+/-) of the data value
       int32_t data_value = (data_sign ? 0xFF800000 : 0x0) | (imu_data[i] & 0x7FFFFF); //extend 24-bit signed to 32-bit signed by cloning the sign bit to the highest 9 bits
       
-      imu_.orientation_covariance[0] = -1;
-      // imu_.linear_acceleration_covariance[0] = -1;
-      // imu_.angular_velocity_covariance[0] = -1;
+      imu_meas_.orientation_covariance[0] = -1;
 
       if (data_type == 14) {
-        imu_.angular_velocity.x = data_value * deg_per_sec;
+        imu_meas_.angular_velocity.x = data_value * deg_per_sec;
       } else if (data_type == 16) {
-        imu_.linear_acceleration.x = data_value * m_per_sec_sq;
+        imu_meas_.linear_acceleration.x = data_value * m_per_sec_sq;
       } else if (data_type == 13) {
-        imu_.angular_velocity.y = data_value * deg_per_sec;
+        imu_meas_.angular_velocity.y = data_value * deg_per_sec;
       } else if (data_type == 17) {
-        imu_.linear_acceleration.y = data_value * m_per_sec_sq;
+        imu_meas_.linear_acceleration.y = data_value * m_per_sec_sq;
       } else if (data_type == 5) {
-        imu_.angular_velocity.z = data_value * deg_per_sec;
+        imu_meas_.angular_velocity.z = data_value * deg_per_sec;
       } else if (data_type == 18) {
-        imu_.linear_acceleration.z = data_value * m_per_sec_sq;
+        imu_meas_.linear_acceleration.z = data_value * m_per_sec_sq;
       } else if (data_type == 12) {
         //ROS_INFO("Temperature in celsius: %f", data_value * deg_c); 
       } else {
@@ -1409,22 +1363,7 @@ void AdrUdrProduct::callbackEsfMEAS(const ublox_msgs::EsfMEAS &m) {
         ROS_INFO("data_value: %u", data_value);
       } 
      
-      // create time ref message and put in the data
-      //t_ref_.header.seq = m.risingEdgeCount;
-      //t_ref_.header.stamp = ros::Time::now();
-      //t_ref_.header.frame_id = frame_id;
-
-      //t_ref_.time_ref = ros::Time((m.wnR * 604800 + m.towMsR / 1000), (m.towMsR % 1000) * 1000000 + m.towSubMsR); 
-    
-      //std::ostringstream src;
-      //src << "TIM" << int(m.ch); 
-      //t_ref_.source = src.str();
-
-      t_ref_.header.stamp = ros::Time::now(); // create a new timestamp
-      t_ref_.header.frame_id = frame_id;
-   
-      time_ref_pub.publish(t_ref_);
-      imu_pub.publish(imu_);
+      imu_meas_pub.publish(imu_meas_);
     }
   }
   
@@ -1433,11 +1372,11 @@ void AdrUdrProduct::callbackEsfMEAS(const ublox_msgs::EsfMEAS &m) {
 
 void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
   if (enabled["esf_raw"]) {
-    static ros::Publisher imu_pub = 
+    static ros::Publisher imu_raw_pub = 
 	nh->advertise<sensor_msgs::Imu>("imu_raw", kROSQueueSize);
     
-    imu_.header.stamp = ros::Time::now();
-    imu_.header.frame_id = frame_id;
+    imu_raw_.header.stamp = ros::Time::now();
+    imu_raw_.header.frame_id = frame_id;
     
     float deg_per_sec = pow(2, -12);
     float m_per_sec_sq = pow(2, -10);
@@ -1452,45 +1391,50 @@ void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
       esfRawBlock = m.blocks[i]; 
       imu_data = esfRawBlock.data;
       sensor_time = esfRawBlock.sTtag;
-
+     
+       
       if (this_sensor_time == 0) {
         this_sensor_time = sensor_time;
-      } else if (sensor_time != this_sensor_time) {
-        // the imu_raw message has many imu measurements in one message
-        // when the sensor_time changes, this means it has moved onto the next imu measurement
-        // publish the data everytime we move to next measurement
-        imu_pub.publish(imu_);
+      } else if (this_sensor_time != sensor_time) {
+        // ROS_DEBUG("Sensor Time: %u", this_sensor_time);
+        this_sensor_time = sensor_time;
+        // publish the full imu message
+        imu_raw_pub.publish(imu_raw_);
+        updater->force_update();
       }
 
-      unsigned int data_type = imu_data >> 24; //grab the last six bits of data
-      int data_sign = ((imu_data >> 23) & 1); //grab the sign (+/-) of the data value
-      int32_t data_value = (data_sign ? 0xFF800000 : 0x0) | (imu_data & 0x7FFFFF); //extend 24-bit signed to 32-bit signed by cloning the sign bit to the highest 9 bits
+      if (this_sensor_time == sensor_time) {
+
+        unsigned int data_type = imu_data >> 24; //grab the last six bits of data
+        int data_sign = ((imu_data >> 23) & 1); //grab the sign (+/-) of the data value
+        int32_t data_value = (data_sign ? 0xFF800000 : 0x0) | (imu_data & 0x7FFFFF); //extend 24-bit signed to 32-bit signed by cloning the sign bit to the highest 9 bits
       
-      imu_.orientation_covariance[0] = -1;
-      // imu_.linear_acceleration_covariance[0] = -1;
-      // imu_.angular_velocity_covariance[0] = -1;
+        imu_raw_.orientation_covariance[0] = -1;
         
-      if (data_type == 14) {
-        imu_.angular_velocity.x = data_value * deg_per_sec;
-      } else if (data_type == 16) {
-        imu_.linear_acceleration.x = data_value * m_per_sec_sq;
-      } else if (data_type == 13) {
-        imu_.angular_velocity.y = data_value * deg_per_sec;
-      } else if (data_type == 17) {
-        imu_.linear_acceleration.y = data_value * m_per_sec_sq;
-      } else if (data_type == 5) {
-        imu_.angular_velocity.z = data_value * deg_per_sec;
-      } else if (data_type == 18) {
-        imu_.linear_acceleration.z = data_value * m_per_sec_sq;
-      } else if (data_type == 12) {
-        //ROS_INFO("Temperature in celsius: %f", data_value * deg_c); 
-      } else {
-        ROS_INFO("data_type: %u", data_type);
-        ROS_INFO("data_value: %u", data_value);
+        if (data_type == 14) {
+          imu_raw_.angular_velocity.x = data_value * deg_per_sec;
+        } else if (data_type == 16) {
+          imu_raw_.linear_acceleration.x = data_value * m_per_sec_sq;
+        } else if (data_type == 13) {
+          imu_raw_.angular_velocity.y = data_value * deg_per_sec;
+        } else if (data_type == 17) {
+          imu_raw_.linear_acceleration.y = data_value * m_per_sec_sq;
+        } else if (data_type == 5) {
+          imu_raw_.angular_velocity.z = data_value * deg_per_sec;
+        } else if (data_type == 18) {
+          imu_raw_.linear_acceleration.z = data_value * m_per_sec_sq;
+        } else if (data_type == 12) {
+          //ROS_INFO("Temperature in celsius: %f", data_value * deg_c); 
+        } else {
+          ROS_INFO("data_type: %u", data_type);
+          ROS_INFO("data_value: %u", data_value);
+        }
+
+        //ROS_INFO("Data type: %u", data_type);
       }
     }
     // publish the last data blocks...
-    imu_pub.publish(imu_);
+    imu_raw_pub.publish(imu_raw_);
   }
   
   updater->force_update();

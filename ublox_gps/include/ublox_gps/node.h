@@ -1063,15 +1063,12 @@ class AdrUdrProduct: public virtual ComponentInterface {
 
  protected:
   //! Whether or not to enable dead reckoning
-  bool use_adr_;
   bool tp_active_;
+  bool use_adr_;
   uint8_t hnr_rate_;
-  nav_msgs::Odometry odom_;
-  sensor_msgs::Imu imu_;
-  sensor_msgs::TimeReference t_ref_;
-  ublox_msgs::TimTM2 timtm2;
+  sensor_msgs::Imu imu_meas_;
+  sensor_msgs::Imu imu_raw_;
 
-  void callbackHnrPVT(const ublox_msgs::HnrPVT &m);
   void callbackEsfMEAS(const ublox_msgs::EsfMEAS &m);
   void callbackEsfRAW(const ublox_msgs::EsfRAW &m);
 };
