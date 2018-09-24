@@ -43,3 +43,9 @@ inf:
 # Enable u-blox message publishers
 publish:
   all: true
+  esf:
+    raw: true
+  tim:
+    tm2: true
+  nav:
+    clock: true

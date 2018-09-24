@@ -111,9 +111,10 @@ void UbloxNode::addProductInterface(std::string product_category,
   else if (product_category.compare("TIM") == 0)
     components_.push_back(ComponentPtr(new TimProduct));
   else if (product_category.compare("ADR") == 0 ||
-           product_category.compare("UDR") == 0)
+           product_category.compare("UDR") == 0) {
     components_.push_back(ComponentPtr(new AdrUdrProduct));
-  else if (product_category.compare("FTS") == 0)
+    components_.push_back(ComponentPtr(new TimProduct));
+  } else if (product_category.compare("FTS") == 0)
     components_.push_back(ComponentPtr(new FtsProduct));
   else if(product_category.compare("SPG") != 0)
     ROS_WARN("Product category %s %s from MonVER message not recognized %s",
@@ -1295,20 +1296,23 @@ void AdrUdrProduct::subscribe() {
 
   // Subscribe to ESF Meas messages
   nh->param("publish/esf/meas", enabled["esf_meas"], enabled["esf"]);
-  if (enabled["esf_meas"])
+  if (enabled["esf_meas"]) {
     gps.subscribe<ublox_msgs::EsfMEAS>(boost::bind(
         publish<ublox_msgs::EsfMEAS>, _1, "esfmeas"), kSubscribeRate);
     // also publish sensor_msgs::Imu
     gps.subscribe<ublox_msgs::EsfMEAS>(boost::bind(
       &AdrUdrProduct::callbackEsfMEAS, this, _1), kSubscribeRate);
-    gps.subscribe<ublox_msgs::EsfRAW>(boost::bind(
-      &AdrUdrProduct::callbackEsfRAW, this, _1), kSubscribeRate);
+  }
   
   // Subscribe to ESF Raw messages
   nh->param("publish/esf/raw", enabled["esf_raw"], enabled["esf"]);
-  if (enabled["esf_raw"])
+  if (enabled["esf_raw"]) {
     gps.subscribe<ublox_msgs::EsfRAW>(boost::bind(
         publish<ublox_msgs::EsfRAW>, _1, "esfraw"), kSubscribeRate);
+    // also publish sensor_msgs::Imu
+    gps.subscribe<ublox_msgs::EsfRAW>(boost::bind(
+      &AdrUdrProduct::callbackEsfRAW, this, _1), kSubscribeRate);
+  }
 
   // Subscribe to ESF Status messages
   nh->param("publish/esf/status", enabled["esf_status"], enabled["esf"]);
@@ -1727,15 +1731,17 @@ bool TimProduct::configureUblox() {
 }
 
 void TimProduct::subscribe() {
+  nh->param("publish/tim", enabled["tim"], enabled["all"]);
+  nh->param("publish/tim/tm2", enabled["tim_tm2"], enabled["tim"]);
   ROS_INFO("TIM is Enabled: %u", enabled["tim"]);
   ROS_INFO("TIM-TM2 is Enabled: %u", enabled["tim_tm2"]);
   // Subscribe to TIM-TM2 messages (Time mark messages)
-  nh->param("publish/tim/tm2", enabled["tim_tm2"], enabled["tim"]);
-
-  gps.subscribe<ublox_msgs::TimTM2>(boost::bind(
-    &TimProduct::callbackTimTM2, this, _1), kSubscribeRate);
-	
-  ROS_INFO("Subscribed to TIM-TM2 messages on topic tim/tm2");
+  if (enabled["tim_tm2"]) {
+    gps.subscribe<ublox_msgs::TimTM2>(boost::bind(
+      &TimProduct::callbackTimTM2, this, _1), kSubscribeRate);
+    ROS_INFO("Subscribed to TIM-TM2 messages on topic tim/tm2");
+  } else
+    ROS_INFO("TIM-TM2 messages disabled");
 	
   // Subscribe to SFRBX messages
   nh->param("publish/rxm/sfrb", enabled["rxm_sfrb"], enabled["rxm"]);
