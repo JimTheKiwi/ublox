@@ -116,7 +116,7 @@ void Gps::initializeSerial(std::string port, unsigned int baudrate,
   }
 
   ROS_INFO("U-Blox: Opened serial port %s", port.c_str());
-    
+
   if(BOOST_VERSION < 106600)
   {
     // NOTE(Kartik): Set serial port to "raw" mode. This is done in Boost but
@@ -282,7 +282,7 @@ bool Gps::configGnss(CfgGNSS gnss,
   ROS_WARN("GNSS re-configured, cold resetting device.");
   if (!configReset(CfgRST::NAV_BBR_COLD_START, CfgRST::RESET_MODE_GNSS))
     return false;
-  
+
   ROS_DEBUG("Waiting 1 second for device to reset...");
   ros::Duration(1.0).sleep();
   // Reset the I/O
@@ -521,10 +521,10 @@ bool Gps::setUseAdr(bool enable) {
 
 bool Gps::setHnrPVT(uint8_t rate) {
   ROS_DEBUG("Setting HNR-PVT to %u", rate);
-  
+
   ublox_msgs::CfgHNR msg;
   msg.highNavRate = rate;
-  
+
   return configure(msg);
 }
 
@@ -532,32 +532,21 @@ bool Gps::setTimePulse(uint8_t tp_ch, bool enable) {
   ROS_DEBUG("%s Time Pulse %u", (enable ? "Enabling" : "Disabling"), tp_ch);
 
   ublox_msgs::CfgTP5 msg;
- 
+
   msg.tpIdx = tp_ch;
-  msg.version = 1; 
+  msg.version = 1;
   msg.antCableDelay = 0;
   msg.rfGroupDelay = 0;
   msg.freqPeriod = 10;
   msg.freqPeriodLock = 10;
-  msg.pulseLenRatio = 5;
-  msg.pulseLenRatioLock = 5;
+  msg.pulseLenRatio = 50;
+  msg.pulseLenRatioLock = 50;
   msg.userConfigDelay = 0;
- 
-  ROS_DEBUG("msg flags are: %u", msg.flags);
-  std::bitset<32> new_flags;
-  
-  new_flags[0] = 1;
-  new_flags[1] = 1;
-  new_flags[2] = 1;
-  new_flags[3] = 1;
-  new_flags[4] = 1;
-  new_flags[5] = 1;
-  new_flags[7] = 1;
-  new_flags[11] = 1;
-  
-  msg.flags = new_flags.to_ulong();
- 
-  ROS_DEBUG("msg flags set to: %u", msg.flags);
+
+  msg.flags =
+    CfgTP5::FLAGS_ACTIVE | CfgTP5::FLAGS_LOCKED_OTHER_SET |
+    CfgTP5::FLAGS_IS_FREQ | CfgTP5::FLAGS_GRID_UTC_GNSS_GPS;
+  ROS_DEBUG("msg flags set to: %#x", msg.flags);
 
   return configure(msg);
 }
@@ -609,7 +598,7 @@ bool Gps::setTimtm2(uint8_t rate) {
   ublox_msgs::CfgMSG msg;
   msg.msgClass = ublox_msgs::TimTM2::CLASS_ID;
   msg.msgID = ublox_msgs::TimTM2::MESSAGE_ID;
-  msg.rate  = rate; 
+  msg.rate  = rate;
   return configure(msg);
 }
 }  // namespace ublox_gps
