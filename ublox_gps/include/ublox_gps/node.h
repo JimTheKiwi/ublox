@@ -637,8 +637,15 @@ class UbloxNode : public virtual ComponentInterface {
   ublox_msgs::CfgCFG load_;
   //! Parameters to save to non-volatile memory after configuration
   ublox_msgs::CfgCFG save_;
-  //! rate for TIM-TM2
-  uint8_t tim_rate_;
+
+ protected:
+  /**
+   * @brief
+   * @details Publish recieved TimTM2 messages if enabled
+   */
+  void callbackTimTM2(const ublox_msgs::TimTM2 &m);
+
+  sensor_msgs::TimeReference t_ref_;
 };
 
 /**
@@ -1312,15 +1319,6 @@ class TimProduct: public virtual ComponentInterface {
    * @todo Currently unimplemented.
    */
   void initializeRosDiagnostics();
-
- protected:  
-  /**
-   * @brief 
-   * @details Publish recieved TimTM2 messages if enabled
-   */
-  void callbackTimTM2(const ublox_msgs::TimTM2 &m);
- 
-  sensor_msgs::TimeReference t_ref_;
 };
 
 }
