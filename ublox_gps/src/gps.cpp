@@ -535,17 +535,22 @@ bool Gps::setTimePulse(uint8_t tp_ch, bool enable) {
 
   msg.tpIdx = tp_ch;
   msg.version = 1;
-  msg.antCableDelay = 0;
+  msg.antCableDelay = 50;
   msg.rfGroupDelay = 0;
-  msg.freqPeriod = 10;
+  msg.freqPeriod = 1;
   msg.freqPeriodLock = 10;
-  msg.pulseLenRatio = 50;
-  msg.pulseLenRatioLock = 50;
+  msg.pulseLenRatio = 429496729;  // 10% of 2^32
+  msg.pulseLenRatioLock = 429496729;  // 10% of 2^32
   msg.userConfigDelay = 0;
 
   msg.flags =
-    CfgTP5::FLAGS_ACTIVE | CfgTP5::FLAGS_LOCKED_OTHER_SET |
-    CfgTP5::FLAGS_IS_FREQ | CfgTP5::FLAGS_GRID_UTC_GNSS_GPS;
+    CfgTP5::FLAGS_ACTIVE |
+    CfgTP5::FLAGS_LOCK_GNSS_FREQ |
+    CfgTP5::FLAGS_LOCKED_OTHER_SET |
+    CfgTP5::FLAGS_IS_FREQ |
+    CfgTP5::FLAGS_ALIGN_TO_TOW |
+    CfgTP5::FLAGS_POLARITY |
+    CfgTP5::FLAGS_GRID_UTC_GNSS_UTC;
   ROS_DEBUG("msg flags set to: %#x", msg.flags);
 
   return configure(msg);
