@@ -320,10 +320,17 @@ class Gps {
   
   /**
    * @brief Enable or disable Time Pulse
-   * @param If true, enable Time Pulse 
+   * @param frequency of time pulse, if 0 disables time pulse 
    * @return true on ACK, false on other conditions.
    */
-  bool setTimePulse(uint8_t tp_ch, bool enable);
+  bool setTimePulse(uint8_t tp_ch, uint32_t freqPeriod);
+  /**
+   * @brief Enable or disable Time Pulse
+   * @param frequency of time pulse with no lock, if 0 disables time pulse 
+   * @param frequency of time pulse with a lock, if 0 disables time pulse 
+   * @return true on ACK, false on other conditions.
+   */
+  bool setTimePulse(uint8_t tp_ch, uint32_t freqPeriod, uint32_t freqPeriodLock);
  
   /**
    * @brief Configure the U-Blox send rate of the message & subscribe to the

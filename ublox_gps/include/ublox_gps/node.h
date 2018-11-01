@@ -994,6 +994,8 @@ class UbloxFirmware8 : public UbloxFirmware7Plus<ublox_msgs::NavPVT> {
   ublox_msgs::CfgNMEA cfg_nmea_;
   //! Whether to clear the flash memory during configuration
   bool clear_bbr_;
+  // TimePulse without or with a lock, 0 to disable
+  uint32_t tp_freq_nolock_, tp_freq_lock_;
 };
 
 /**
@@ -1068,13 +1070,20 @@ class AdrUdrProduct: public virtual ComponentInterface {
     
   }
 
+  constexpr static int nsPerImuRawTick = 38776; /* from 256 * 100.74Hz */
+
  protected:
   //! Whether or not to enable dead reckoning
-  bool tp_active_;
   bool use_adr_;
   uint8_t hnr_rate_;
   sensor_msgs::Imu imu_meas_;
   sensor_msgs::Imu imu_raw_;
+  double linacc_x_offset_, linacc_x_scale_;
+  double linacc_y_offset_, linacc_y_scale_;
+  double linacc_z_offset_, linacc_z_scale_;
+  double angvel_x_offset_, angvel_x_scale_;
+  double angvel_y_offset_, angvel_y_scale_;
+  double angvel_z_offset_, angvel_z_scale_;
 
   void callbackEsfMEAS(const ublox_msgs::EsfMEAS &m);
   void callbackEsfRAW(const ublox_msgs::EsfRAW &m);

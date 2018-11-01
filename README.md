@@ -99,10 +99,31 @@ The `ublox_gps` node supports the following parameters for all products and firm
   * `gnss/galileo`: Enable Galileo receiver. Defaults to false.
   * `gnss/imes`: Enable IMES receiver. Defaults to false.
 * `nmea/bds_talker_id`: (See other NMEA configuration parameters above) Sets the two characters that should be used for the BeiDou Talker ID.
+* `tp`: Time Pulse params
+  * `tp/freq`: Time Pulse frequency (0 to disable)
+  * `tp/freq_nolock`: Time Pulse frequency when no lock, overrides tp/freq
+  * `tp/freq_lock`: Time Pulse frequency when lock, overrides tp/freq
 
 ### For UDR/ADR devices:
 * `use_adr`: Enable ADR/UDR. Defaults to true.
 * `nav_rate` should be set to 1 Hz.
+* `esf`: External Sensor fusion to IMU
+  * `calibration`: ROS message IMU calibration (should be unnecessary after Initialization Period and self-calibration?)
+    * `linear_acceleration`: Should be calibrated to give a range of +/-9.81m/s/s
+      * `x_offset`: X axis Offset in pre-scaled m/s/s
+      * `x_scale`: X axis Scale factor
+      * `y_offset`: Y axis Offset in pre-scaled m/s/s
+      * `y_scale`: Y axis Scale factor
+      * `z_offset`: Z axis Offset in pre-scaled m/s/s
+      * `z_scale`: Z axis Scale factor
+    * `angular_velocity`: Should be calibrated to be 0 radians per second when still
+      * `x_offset`: X axis Offset in pre-scaled rad/s
+      * `x_scale`: X axis Scale factor
+      * `y_offset`: Y axis Offset in pre-scaled rad/s
+      * `y_scale`: Y axis Scale factor
+      * `z_offset`: Z axis Offset in pre-scaled rad/s
+      * `z_scale`: Z axis Scale factor
+
 
 ### For HPG Reference devices:
 * `tmode3`: Time Mode. Required. See CfgTMODE3 for constants.

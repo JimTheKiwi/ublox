@@ -1130,6 +1130,12 @@ void UbloxFirmware8::getRosParams() {
     cfg_nmea_.bdsTalkerId[0] = bdsTalkerId[0];
     cfg_nmea_.bdsTalkerId[1] = bdsTalkerId[1];
   }
+
+  uint32_t tp_freq;
+  // TimePulse configuration
+  getRosUint("tp/freq", tp_freq, 0);
+  getRosUint("tp/freq_nolock", tp_freq_nolock_, tp_freq);
+  getRosUint("tp/freq_lock", tp_freq_lock_, tp_freq);
 }
 
 
@@ -1223,6 +1229,10 @@ bool UbloxFirmware8::configureUblox() {
   if (set_nmea_ && !gps.configure(cfg_nmea_))
     throw std::runtime_error("Failed to configure NMEA");
 
+  // TimePulse config
+  if(!gps.setTimePulse(1, tp_freq_nolock_, tp_freq_lock_))
+    throw std::runtime_error(std::string("Failed to enable timepulse"));
+
   return true;
 }
 
@@ -1303,21 +1313,29 @@ void RawDataProduct::initializeRosDiagnostics() {
 // u-blox ADR devices, partially implemented
 //
 void AdrUdrProduct::getRosParams() {
-  nh->param("tp_active", tp_active_, true);
   nh->param("use_adr", use_adr_, true);
   getRosUint("hnr_rate", hnr_rate_, 0);
   // Check the nav rate
   float nav_rate_hz = 1000 / (meas_rate * nav_rate);
   if(nav_rate_hz != 1)
     ROS_WARN("Nav Rate recommended to be 1 Hz");
+  // ESF IMU calibration
+  nh->param("esf/calibration/linear_acceleration/x_offset",linacc_x_offset_,0.0);
+  nh->param("esf/calibration/linear_acceleration/x_scale",linacc_x_scale_,1.0);
+  nh->param("esf/calibration/linear_acceleration/y_offset",linacc_y_offset_,0.0);
+  nh->param("esf/calibration/linear_acceleration/y_scale",linacc_y_scale_,1.0);
+  nh->param("esf/calibration/linear_acceleration/z_offset",linacc_z_offset_,0.0);
+  nh->param("esf/calibration/linear_acceleration/z_scale",linacc_z_scale_,1.0);
+  nh->param("esf/calibration/angular_velocity/x_offset",angvel_x_offset_,0.0);
+  nh->param("esf/calibration/angular_velocity/x_scale",angvel_x_scale_,1.0);
+  nh->param("esf/calibration/angular_velocity/y_offset",angvel_y_offset_,0.0);
+  nh->param("esf/calibration/angular_velocity/y_scale",angvel_y_scale_,1.0);
+  nh->param("esf/calibration/angular_velocity/z_offset",angvel_z_offset_,0.0);
+  nh->param("esf/calibration/angular_velocity/z_scale",angvel_z_scale_,1.0);
 }
 
 bool AdrUdrProduct::configureUblox() {
-  
-  if(!gps.setTimePulse(1, tp_active_))
-    throw std::runtime_error(std::string("Failed to ")
-			     + (tp_active_ ? "enable" : "disable") + " tp_active");
- 
+
   if(!gps.setUseAdr(use_adr_))
     throw std::runtime_error(std::string("Failed to ")
                              + (use_adr_ ? "enable" : "disable") + " use_adr");
@@ -1351,7 +1369,7 @@ void AdrUdrProduct::subscribe() {
     gps.subscribe<ublox_msgs::EsfMEAS>(boost::bind(
       &AdrUdrProduct::callbackEsfMEAS, this, _1), kSubscribeRate);
   }
-  
+
   // Subscribe to ESF Raw messages
   nh->param("publish/esf/raw", enabled["esf_raw"], enabled["esf"]);
   if (enabled["esf_raw"]) {
@@ -1373,82 +1391,98 @@ void AdrUdrProduct::subscribe() {
   if (enabled["hnr_pvt"])
     gps.subscribe<ublox_msgs::HnrPVT>(boost::bind(
         publish<ublox_msgs::HnrPVT>, _1, "hnrpvt"), kSubscribeRate);
-  
+
 }
 
 void AdrUdrProduct::callbackEsfMEAS(const ublox_msgs::EsfMEAS &m) {
   if (enabled["esf_meas"]) {
-    static ros::Publisher imu_meas_pub = 
+    static ros::Publisher imu_meas_pub =
 	nh->advertise<sensor_msgs::Imu>("imu_meas", kROSQueueSize);
-    
+
     imu_meas_.header.stamp = ros::Time::now();
     imu_meas_.header.frame_id = frame_id;
-    
+
     float deg_per_sec = pow(2, -12);
+    float rad_per_sec = deg_per_sec / 180.0 * M_PI;
     float m_per_sec_sq = pow(2, -10);
     float deg_c = 1e-2;
-     
+
     std::vector<unsigned int> imu_data = m.data;
     for (int i=0; i < imu_data.size(); i++){
       unsigned int data_type = imu_data[i] >> 24; //grab the last six bits of data
       int data_sign = ((imu_data[i] >> 23) & 1); //grab the sign (+/-) of the data value
       int32_t data_value = (data_sign ? 0xFF800000 : 0x0) | (imu_data[i] & 0x7FFFFF); //extend 24-bit signed to 32-bit signed by cloning the sign bit to the highest 9 bits
-      
+
       imu_meas_.orientation_covariance[0] = -1;
 
       if (data_type == 14) {
-        imu_meas_.angular_velocity.x = data_value * deg_per_sec;
+        imu_meas_.angular_velocity.x =
+          (data_value * rad_per_sec + angvel_x_offset_) * angvel_x_scale_;
       } else if (data_type == 16) {
-        imu_meas_.linear_acceleration.x = data_value * m_per_sec_sq;
+        imu_meas_.linear_acceleration.x =
+          (data_value * m_per_sec_sq + linacc_x_offset_) * linacc_x_scale_;
       } else if (data_type == 13) {
-        imu_meas_.angular_velocity.y = data_value * deg_per_sec;
+        imu_meas_.angular_velocity.y =
+          (data_value * rad_per_sec + angvel_y_offset_) * angvel_y_scale_;
       } else if (data_type == 17) {
-        imu_meas_.linear_acceleration.y = data_value * m_per_sec_sq;
+        imu_meas_.linear_acceleration.y =
+          (data_value * m_per_sec_sq + linacc_y_offset_) * linacc_y_scale_;
       } else if (data_type == 5) {
-        imu_meas_.angular_velocity.z = data_value * deg_per_sec;
+        imu_meas_.angular_velocity.z =
+          (data_value * rad_per_sec + angvel_z_offset_) * angvel_z_scale_;
       } else if (data_type == 18) {
-        imu_meas_.linear_acceleration.z = data_value * m_per_sec_sq;
+        imu_meas_.linear_acceleration.z =
+          (data_value * m_per_sec_sq + linacc_z_offset_) * linacc_z_scale_;
       } else if (data_type == 12) {
-        //ROS_INFO("Temperature in celsius: %f", data_value * deg_c); 
+        //ROS_INFO("Temperature in celsius: %f", data_value * deg_c);
       } else {
         ROS_INFO("data_type: %u", data_type);
         ROS_INFO("data_value: %u", data_value);
-      } 
-     
+      }
+
       imu_meas_pub.publish(imu_meas_);
     }
   }
-  
+
   updater->force_update();
 }
 
 void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
   if (enabled["esf_raw"]) {
-    static ros::Publisher imu_raw_pub = 
+    static ros::Publisher imu_raw_pub =
 	nh->advertise<sensor_msgs::Imu>("imu_raw", kROSQueueSize);
-    
-    imu_raw_.header.stamp = ros::Time::now();
+
+    imu_raw_.header.stamp =
+      // Timestamp for last sample
+      ros::Time::now() //TODO Better estimate from M8U clock
+      // Offset to first sample
+      - ros::Duration(0, (m.blocks.size()/7 - 1) * nsPerImuRawTick); //TODO more generic based on last sTtag value not first, not assuming 7 blocks per sample, nor < 1 second per message
     imu_raw_.header.frame_id = frame_id;
-    
+
     float deg_per_sec = pow(2, -12);
+    float rad_per_sec = deg_per_sec / 180.0 * M_PI;
     float m_per_sec_sq = pow(2, -10);
     float deg_c = 1e-2;
-    
-    ublox_msgs::EsfRAW_Block esfRawBlock; 
+
+    ublox_msgs::EsfRAW_Block esfRawBlock;
     uint32_t imu_data;
     uint32_t sensor_time;
     uint32_t this_sensor_time = 0;
 
     for (int i=0; i < m.blocks.size(); i++){
-      esfRawBlock = m.blocks[i]; 
+      esfRawBlock = m.blocks[i];
       imu_data = esfRawBlock.data;
       sensor_time = esfRawBlock.sTtag;
-     
-       
+
       if (this_sensor_time == 0) {
         this_sensor_time = sensor_time;
       } else if (this_sensor_time != sensor_time) {
-        // ROS_DEBUG("Sensor Time: %u", this_sensor_time);
+        uint32_t sample_duration =
+          // Wraps in 24 bits (about every 655.36 seconds, ~11 minutes).
+          (this_sensor_time > sensor_time ? 0 : 0x01000000) +
+          this_sensor_time - sensor_time;
+        imu_raw_.header.stamp +=
+          ros::Duration(0, sample_duration * nsPerImuRawTick);
         this_sensor_time = sensor_time;
         // publish the full imu message
         imu_raw_pub.publish(imu_raw_);
@@ -1460,23 +1494,29 @@ void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
         unsigned int data_type = imu_data >> 24; //grab the last six bits of data
         int data_sign = ((imu_data >> 23) & 1); //grab the sign (+/-) of the data value
         int32_t data_value = (data_sign ? 0xFF800000 : 0x0) | (imu_data & 0x7FFFFF); //extend 24-bit signed to 32-bit signed by cloning the sign bit to the highest 9 bits
-      
+
         imu_raw_.orientation_covariance[0] = -1;
-        
+
         if (data_type == 14) {
-          imu_raw_.angular_velocity.x = data_value * deg_per_sec;
+          imu_raw_.angular_velocity.x = data_value * rad_per_sec;
+            (data_value * rad_per_sec + angvel_x_offset_) * angvel_x_scale_;
         } else if (data_type == 16) {
-          imu_raw_.linear_acceleration.x = data_value * m_per_sec_sq;
+          imu_raw_.linear_acceleration.x =
+            (data_value * m_per_sec_sq + linacc_x_offset_) * linacc_x_scale_;
         } else if (data_type == 13) {
-          imu_raw_.angular_velocity.y = data_value * deg_per_sec;
+          imu_raw_.angular_velocity.y =
+            (data_value * rad_per_sec + angvel_y_offset_) * angvel_y_scale_;
         } else if (data_type == 17) {
-          imu_raw_.linear_acceleration.y = data_value * m_per_sec_sq;
+          imu_raw_.linear_acceleration.y =
+            (data_value * m_per_sec_sq + linacc_y_offset_) * linacc_y_scale_;
         } else if (data_type == 5) {
-          imu_raw_.angular_velocity.z = data_value * deg_per_sec;
+          imu_raw_.angular_velocity.z =
+            (data_value * rad_per_sec + angvel_z_offset_) * angvel_z_scale_;
         } else if (data_type == 18) {
-          imu_raw_.linear_acceleration.z = data_value * m_per_sec_sq;
+          imu_raw_.linear_acceleration.z =
+            (data_value * m_per_sec_sq + linacc_z_offset_) * linacc_z_scale_;
         } else if (data_type == 12) {
-          //ROS_INFO("Temperature in celsius: %f", data_value * deg_c); 
+          //ROS_INFO("Temperature in celsius: %f", data_value * deg_c);
         } else {
           ROS_INFO("data_type: %u", data_type);
           ROS_INFO("data_value: %u", data_value);
@@ -1488,7 +1528,7 @@ void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
     // publish the last data blocks...
     imu_raw_pub.publish(imu_raw_);
   }
-  
+
   updater->force_update();
 }
 
@@ -1773,16 +1813,16 @@ bool TimProduct::configureUblox() {
 void TimProduct::subscribe() {
   ROS_INFO("TIM is Enabled: %u", enabled["tim"]);
   // Subscribe to SFRBX messages
-  nh->param("publish/rxm/sfrb", enabled["rxm_sfrb"], enabled["rxm"]);
-  if (enabled["rxm_sfrb"])
+  nh->param("publish/rxm/sfrbx", enabled["rxm_sfrbx"], enabled["rxm"]);
+  if (enabled["rxm_sfrbx"])
     gps.subscribe<ublox_msgs::RxmSFRBX>(boost::bind(
-        publish<ublox_msgs::RxmSFRBX>, _1, "rxmsfrb"), kSubscribeRate);
+        publish<ublox_msgs::RxmSFRBX>, _1, "rxmsfrbx"), kSubscribeRate);
 
    // Subscribe to RawX messages
-   nh->param("publish/rxm/raw", enabled["rxm_raw"], enabled["rxm"]);
-   if (enabled["rxm_raw"])
+   nh->param("publish/rxm/rawx", enabled["rxm_rawx"], enabled["rxm"]);
+   if (enabled["rxm_rawx"])
      gps.subscribe<ublox_msgs::RxmRAWX>(boost::bind(
-        publish<ublox_msgs::RxmRAWX>, _1, "rxmraw"), kSubscribeRate);
+        publish<ublox_msgs::RxmRAWX>, _1, "rxmrawx"), kSubscribeRate);
 }
 
 void TimProduct::initializeRosDiagnostics() {
