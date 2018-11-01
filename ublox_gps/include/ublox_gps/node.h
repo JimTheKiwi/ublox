@@ -1070,6 +1070,8 @@ class AdrUdrProduct: public virtual ComponentInterface {
     
   }
 
+  constexpr static int nsPerImuRawTick = 38776; /* from 256 * 100.74Hz */
+
  protected:
   //! Whether or not to enable dead reckoning
   bool use_adr_;
