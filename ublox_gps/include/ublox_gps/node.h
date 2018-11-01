@@ -994,6 +994,8 @@ class UbloxFirmware8 : public UbloxFirmware7Plus<ublox_msgs::NavPVT> {
   ublox_msgs::CfgNMEA cfg_nmea_;
   //! Whether to clear the flash memory during configuration
   bool clear_bbr_;
+  // TimePulse without or with a lock, 0 to disable
+  uint32_t tp_freq_nolock_, tp_freq_lock_;
 };
 
 /**
@@ -1070,7 +1072,6 @@ class AdrUdrProduct: public virtual ComponentInterface {
 
  protected:
   //! Whether or not to enable dead reckoning
-  bool tp_active_;
   bool use_adr_;
   uint8_t hnr_rate_;
   sensor_msgs::Imu imu_meas_;

@@ -1130,6 +1130,12 @@ void UbloxFirmware8::getRosParams() {
     cfg_nmea_.bdsTalkerId[0] = bdsTalkerId[0];
     cfg_nmea_.bdsTalkerId[1] = bdsTalkerId[1];
   }
+
+  uint32_t tp_freq;
+  // TimePulse configuration
+  getRosUint("tp/freq", tp_freq, 0);
+  getRosUint("tp/freq_nolock", tp_freq_nolock_, tp_freq);
+  getRosUint("tp/freq_lock", tp_freq_lock_, tp_freq);
 }
 
 
@@ -1223,6 +1229,10 @@ bool UbloxFirmware8::configureUblox() {
   if (set_nmea_ && !gps.configure(cfg_nmea_))
     throw std::runtime_error("Failed to configure NMEA");
 
+  // TimePulse config
+  if(!gps.setTimePulse(1, tp_freq_nolock_, tp_freq_lock_))
+    throw std::runtime_error(std::string("Failed to enable timepulse"));
+
   return true;
 }
 
@@ -1303,7 +1313,6 @@ void RawDataProduct::initializeRosDiagnostics() {
 // u-blox ADR devices, partially implemented
 //
 void AdrUdrProduct::getRosParams() {
-  nh->param("tp_active", tp_active_, true);
   nh->param("use_adr", use_adr_, true);
   getRosUint("hnr_rate", hnr_rate_, 0);
   // Check the nav rate
@@ -1314,10 +1323,6 @@ void AdrUdrProduct::getRosParams() {
 
 bool AdrUdrProduct::configureUblox() {
   
-  if(!gps.setTimePulse(1, tp_active_))
-    throw std::runtime_error(std::string("Failed to ")
-			     + (tp_active_ ? "enable" : "disable") + " tp_active");
- 
   if(!gps.setUseAdr(use_adr_))
     throw std::runtime_error(std::string("Failed to ")
                              + (use_adr_ ? "enable" : "disable") + " use_adr");
@@ -1773,16 +1778,16 @@ bool TimProduct::configureUblox() {
 void TimProduct::subscribe() {
   ROS_INFO("TIM is Enabled: %u", enabled["tim"]);
   // Subscribe to SFRBX messages
-  nh->param("publish/rxm/sfrb", enabled["rxm_sfrb"], enabled["rxm"]);
-  if (enabled["rxm_sfrb"])
+  nh->param("publish/rxm/sfrbx", enabled["rxm_sfrbx"], enabled["rxm"]);
+  if (enabled["rxm_sfrbx"])
     gps.subscribe<ublox_msgs::RxmSFRBX>(boost::bind(
-        publish<ublox_msgs::RxmSFRBX>, _1, "rxmsfrb"), kSubscribeRate);
+        publish<ublox_msgs::RxmSFRBX>, _1, "rxmsfrbx"), kSubscribeRate);
 
    // Subscribe to RawX messages
-   nh->param("publish/rxm/raw", enabled["rxm_raw"], enabled["rxm"]);
-   if (enabled["rxm_raw"])
+   nh->param("publish/rxm/rawx", enabled["rxm_rawx"], enabled["rxm"]);
+   if (enabled["rxm_rawx"])
      gps.subscribe<ublox_msgs::RxmRAWX>(boost::bind(
-        publish<ublox_msgs::RxmRAWX>, _1, "rxmraw"), kSubscribeRate);
+        publish<ublox_msgs::RxmRAWX>, _1, "rxmrawx"), kSubscribeRate);
 }
 
 void TimProduct::initializeRosDiagnostics() {

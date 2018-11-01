@@ -528,8 +528,11 @@ bool Gps::setHnrPVT(uint8_t rate) {
   return configure(msg);
 }
 
-bool Gps::setTimePulse(uint8_t tp_ch, bool enable) {
-  ROS_DEBUG("%s Time Pulse %u", (enable ? "Enabling" : "Disabling"), tp_ch);
+bool Gps::setTimePulse(uint8_t tp_ch, uint32_t freqPeriod) {
+  return Gps::setTimePulse(tp_ch, freqPeriod, freqPeriod);
+}
+bool Gps::setTimePulse(uint8_t tp_ch, uint32_t freqPeriod, uint32_t freqPeriodLock) {
+  ROS_DEBUG("Time Pulse frequency set to %u,%u on channel %u", freqPeriod, freqPeriodLock, tp_ch);
 
   ublox_msgs::CfgTP5 msg;
 
@@ -537,8 +540,8 @@ bool Gps::setTimePulse(uint8_t tp_ch, bool enable) {
   msg.version = 1;
   msg.antCableDelay = 50;
   msg.rfGroupDelay = 0;
-  msg.freqPeriod = 1;
-  msg.freqPeriodLock = 10;
+  msg.freqPeriod = freqPeriod;
+  msg.freqPeriodLock = freqPeriodLock;
   msg.pulseLenRatio = 429496729;  // 10% of 2^32
   msg.pulseLenRatioLock = 429496729;  // 10% of 2^32
   msg.userConfigDelay = 0;

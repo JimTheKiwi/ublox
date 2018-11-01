@@ -1,6 +1,6 @@
 # Configuration Settings for C94-M8P device
 
-debug: 3                    # Range 0-4 (0 means no debug statements will print)
+debug: 1                    # Range 0-4 (0 means no debug statements will print)
 
 save:
   mask: 3103                # Save I/O, Message, INF Message, Nav, Receiver 
@@ -8,20 +8,22 @@ save:
   device: 4                 # Save to EEPROM
 
 device: /dev/ttyACM1
-frame_id: m8u 
+frame_id: imu1 
 rate: 1                     # in Hz
 nav_rate: 1                 # [# of measurement cycles], recommended 1 Hz, may 
 
 hnr_rate: 10                # be either 5 Hz (Dual constellation) or 
                             # 8 Hz (GPS only)
 
-tp_active: 1
+tp:                         # Time Pulse
+  freq: 2                   # Hz
 
-dynamic_model: 0    # Airborne < 2G, 2D fix not supported (3D only), 
+dynamic_model: airborne2    # Airborne < 2G, 2D fix not supported (3D only), 
                             # Max Alt: 50km
                             # Max Horizontal Velocity: 250 m/s, 
                             # Max Vertical Velocity: 100 m/s
-fix_mode: 3 
+fix_mode: 3d
+
 #enable_ppp: true           # Not supported by C94-M8P
 #dr_limit: 1
 useAdr: true 
@@ -45,7 +47,11 @@ publish:
   all: true
   esf:
     raw: true
+    meas: true
   tim:
     tm2: true
   nav:
     clock: true
+  rxm:
+    rawx: true
+    sfrbx: true

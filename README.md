@@ -99,6 +99,10 @@ The `ublox_gps` node supports the following parameters for all products and firm
   * `gnss/galileo`: Enable Galileo receiver. Defaults to false.
   * `gnss/imes`: Enable IMES receiver. Defaults to false.
 * `nmea/bds_talker_id`: (See other NMEA configuration parameters above) Sets the two characters that should be used for the BeiDou Talker ID.
+* `tp`: Time Pulse params
+  * `tp/freq`: Time Pulse frequency (0 to disable)
+  * `tp/freq_nolock`: Time Pulse frequency when no lock, overrides tp/freq
+  * `tp/freq_lock`: Time Pulse frequency when lock, overrides tp/freq
 
 ### For UDR/ADR devices:
 * `use_adr`: Enable ADR/UDR. Defaults to true.
