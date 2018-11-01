@@ -1456,7 +1456,7 @@ void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
       // Timestamp for last sample
       ros::Time::now() //TODO Better estimate from M8U clock
       // Offset to first sample
-      - ros::Duration(0, (m.blocks.size()/7 - 1) * nsPerImuRawTick); //TODO more generic based on last sTtag value not first, not assuming 7 blocks per sample, nor < 1 second per message
+      - ros::Duration(0, (m.blocks.size()/7 - 1) * 256 * nsPerImuRawTick); //TODO more generic based on last sTtag value not first, not assuming 7 blocks per sample, nor < 1 second per message
     imu_raw_.header.frame_id = frame_id;
 
     float deg_per_sec = pow(2, -12);
@@ -1477,15 +1477,16 @@ void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
       if (this_sensor_time == 0) {
         this_sensor_time = sensor_time;
       } else if (this_sensor_time != sensor_time) {
+        // publish the full imu message
+        imu_raw_pub.publish(imu_raw_);
+
         uint32_t sample_duration =
           // Wraps in 24 bits (about every 655.36 seconds, ~11 minutes).
-          (this_sensor_time > sensor_time ? 0 : 0x01000000) +
-          this_sensor_time - sensor_time;
+          (sensor_time > this_sensor_time ? 0 : 0x01000000) +
+          sensor_time - this_sensor_time;
         imu_raw_.header.stamp +=
           ros::Duration(0, sample_duration * nsPerImuRawTick);
         this_sensor_time = sensor_time;
-        // publish the full imu message
-        imu_raw_pub.publish(imu_raw_);
         updater->force_update();
       }
 
