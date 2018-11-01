@@ -9,6 +9,18 @@ save:
 
 device: /dev/ttyACM0
 frame_id: imu0
+
+# Example calibration of an IMU:
+#esf:
+#  calibration:
+#    linear_acceleration:
+#      x_offset: 0.5
+#      x_scale: 1.011
+#      y_offset: 0.15
+#      y_scale: 1.006
+#      z_offset: -0.25
+#      z_scale: 0.986
+
 rate: 1                     # in Hz
 nav_rate: 1                 # [# of measurement cycles], recommended 1 Hz, may 
 

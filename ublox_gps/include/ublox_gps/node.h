@@ -1078,6 +1078,12 @@ class AdrUdrProduct: public virtual ComponentInterface {
   uint8_t hnr_rate_;
   sensor_msgs::Imu imu_meas_;
   sensor_msgs::Imu imu_raw_;
+  double linacc_x_offset_, linacc_x_scale_;
+  double linacc_y_offset_, linacc_y_scale_;
+  double linacc_z_offset_, linacc_z_scale_;
+  double angvel_x_offset_, angvel_x_scale_;
+  double angvel_y_offset_, angvel_y_scale_;
+  double angvel_z_offset_, angvel_z_scale_;
 
   void callbackEsfMEAS(const ublox_msgs::EsfMEAS &m);
   void callbackEsfRAW(const ublox_msgs::EsfRAW &m);

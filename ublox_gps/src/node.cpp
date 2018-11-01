@@ -1319,6 +1319,19 @@ void AdrUdrProduct::getRosParams() {
   float nav_rate_hz = 1000 / (meas_rate * nav_rate);
   if(nav_rate_hz != 1)
     ROS_WARN("Nav Rate recommended to be 1 Hz");
+  // ESF IMU calibration
+  nh->param("esf/calibration/linear_acceleration/x_offset",linacc_x_offset_,0.0);
+  nh->param("esf/calibration/linear_acceleration/x_scale",linacc_x_scale_,1.0);
+  nh->param("esf/calibration/linear_acceleration/y_offset",linacc_y_offset_,0.0);
+  nh->param("esf/calibration/linear_acceleration/y_scale",linacc_y_scale_,1.0);
+  nh->param("esf/calibration/linear_acceleration/z_offset",linacc_z_offset_,0.0);
+  nh->param("esf/calibration/linear_acceleration/z_scale",linacc_z_scale_,1.0);
+  nh->param("esf/calibration/angular_velocity/x_offset",angvel_x_offset_,0.0);
+  nh->param("esf/calibration/angular_velocity/x_scale",angvel_x_scale_,1.0);
+  nh->param("esf/calibration/angular_velocity/y_offset",angvel_y_offset_,0.0);
+  nh->param("esf/calibration/angular_velocity/y_scale",angvel_y_scale_,1.0);
+  nh->param("esf/calibration/angular_velocity/z_offset",angvel_z_offset_,0.0);
+  nh->param("esf/calibration/angular_velocity/z_scale",angvel_z_scale_,1.0);
 }
 
 bool AdrUdrProduct::configureUblox() {
@@ -1403,17 +1416,23 @@ void AdrUdrProduct::callbackEsfMEAS(const ublox_msgs::EsfMEAS &m) {
       imu_meas_.orientation_covariance[0] = -1;
 
       if (data_type == 14) {
-        imu_meas_.angular_velocity.x = data_value * rad_per_sec;
+        imu_meas_.angular_velocity.x =
+          (data_value * rad_per_sec + angvel_x_offset_) * angvel_x_scale_;
       } else if (data_type == 16) {
-        imu_meas_.linear_acceleration.x = data_value * m_per_sec_sq;
+        imu_meas_.linear_acceleration.x =
+          (data_value * m_per_sec_sq + linacc_x_offset_) * linacc_x_scale_;
       } else if (data_type == 13) {
-        imu_meas_.angular_velocity.y = data_value * rad_per_sec;
+        imu_meas_.angular_velocity.y =
+          (data_value * rad_per_sec + angvel_y_offset_) * angvel_y_scale_;
       } else if (data_type == 17) {
-        imu_meas_.linear_acceleration.y = data_value * m_per_sec_sq;
+        imu_meas_.linear_acceleration.y =
+          (data_value * m_per_sec_sq + linacc_y_offset_) * linacc_y_scale_;
       } else if (data_type == 5) {
-        imu_meas_.angular_velocity.z = data_value * rad_per_sec;
+        imu_meas_.angular_velocity.z =
+          (data_value * rad_per_sec + angvel_z_offset_) * angvel_z_scale_;
       } else if (data_type == 18) {
-        imu_meas_.linear_acceleration.z = data_value * m_per_sec_sq;
+        imu_meas_.linear_acceleration.z =
+          (data_value * m_per_sec_sq + linacc_z_offset_) * linacc_z_scale_;
       } else if (data_type == 12) {
         //ROS_INFO("Temperature in celsius: %f", data_value * deg_c);
       } else {
@@ -1480,16 +1499,22 @@ void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
 
         if (data_type == 14) {
           imu_raw_.angular_velocity.x = data_value * rad_per_sec;
+            (data_value * rad_per_sec + angvel_x_offset_) * angvel_x_scale_;
         } else if (data_type == 16) {
-          imu_raw_.linear_acceleration.x = data_value * m_per_sec_sq;
+          imu_raw_.linear_acceleration.x =
+            (data_value * m_per_sec_sq + linacc_x_offset_) * linacc_x_scale_;
         } else if (data_type == 13) {
-          imu_raw_.angular_velocity.y = data_value * rad_per_sec;
+          imu_raw_.angular_velocity.y =
+            (data_value * rad_per_sec + angvel_y_offset_) * angvel_y_scale_;
         } else if (data_type == 17) {
-          imu_raw_.linear_acceleration.y = data_value * m_per_sec_sq;
+          imu_raw_.linear_acceleration.y =
+            (data_value * m_per_sec_sq + linacc_y_offset_) * linacc_y_scale_;
         } else if (data_type == 5) {
-          imu_raw_.angular_velocity.z = data_value * rad_per_sec;
+          imu_raw_.angular_velocity.z =
+            (data_value * rad_per_sec + angvel_z_offset_) * angvel_z_scale_;
         } else if (data_type == 18) {
-          imu_raw_.linear_acceleration.z = data_value * m_per_sec_sq;
+          imu_raw_.linear_acceleration.z =
+            (data_value * m_per_sec_sq + linacc_z_offset_) * linacc_z_scale_;
         } else if (data_type == 12) {
           //ROS_INFO("Temperature in celsius: %f", data_value * deg_c);
         } else {
