@@ -528,7 +528,6 @@ bool Gps::setWknRollover(uint16_t wknRollover) {
   return configure(msg);
 }
 
-
 bool Gps::setHnrPVT(uint8_t rate) {
   ROS_DEBUG("Setting HNR-PVT to %u", rate);
 

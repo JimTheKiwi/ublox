@@ -1484,7 +1484,7 @@ void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
       imu_data = esfRawBlock.data;
       sensor_time = esfRawBlock.sTtag;
 
-      ROS_INFO("sensor_time: %u  this_sensor_time: %u", sensor_time, this_sensor_time);
+      ROS_DEBUG("sensor_time: %u  this_sensor_time: %u", sensor_time, this_sensor_time);
 
       if (this_sensor_time == 0) {
         this_sensor_time = sensor_time;
@@ -1498,7 +1498,7 @@ void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
           sensor_time - this_sensor_time;
         imu_raw_.header.stamp +=
           ros::Duration(0, sample_duration * nsPerImuRawTick);
-        ROS_INFO("sample_duration: %u sec: %u nsec: %u", sample_duration, imu_raw_.header.stamp.sec,imu_raw_.header.stamp.nsec);
+        ROS_DEBUG("sample_duration: %u sec: %u nsec: %u", sample_duration, imu_raw_.header.stamp.sec,imu_raw_.header.stamp.nsec);
         this_sensor_time = sensor_time;
         updater->force_update();
       }
