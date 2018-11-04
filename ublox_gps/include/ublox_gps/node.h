@@ -627,6 +627,8 @@ class UbloxNode : public virtual ComponentInterface {
   bool enable_sbas_;
   //! Whether or not to enable PPP (advanced setting)
   bool enable_ppp_;
+  //! Week number rollover parameter
+  uint16_t wkn_rollover_;
   //! SBAS Usage parameter (see CfgSBAS message)
   uint8_t sbas_usage_;
   //! Max SBAS parameter (see CfgSBAS message)

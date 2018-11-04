@@ -519,6 +519,16 @@ bool Gps::setUseAdr(bool enable) {
   return configure(msg);
 }
 
+bool Gps::setWknRollover(uint16_t wknRollover) {
+  ROS_DEBUG("Setting wknRollover to %d", wknRollover);
+
+  ublox_msgs::CfgNAVX5 msg;
+  msg.wknRollover = wknRollover;
+  msg.mask1 = ublox_msgs::CfgNAVX5::MASK1_WKN_ROLL;
+  return configure(msg);
+}
+
+
 bool Gps::setHnrPVT(uint8_t rate) {
   ROS_DEBUG("Setting HNR-PVT to %u", rate);
 

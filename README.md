@@ -23,6 +23,7 @@ The `ublox_gps` node supports the following parameters for all products and firm
 * `rate`: Rate in Hz of measurements. Defaults to 4.
 * `nav_rate`: How often navigation solutions are published in number of measurement cycles. Defaults to 1.
 * `enable_ppp`: Enable precise-point-positioning system. Defaults to false.
+* `wkn_rollover`: Week Number for start of 1024 week period for GPS clock, (0 sets to firmware default which should be firmware compilation date)
 * `gnss/sbas`: Enable satellite-based augmentation system. Defaults to false.
 * `sbas/max`: Maximum number of SBAS channels. Defaults to 0.
 * `sbas/usage`: See `CfgSBAS` message for details. Defaults to 0.

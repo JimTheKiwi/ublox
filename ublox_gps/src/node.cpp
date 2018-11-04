@@ -166,6 +166,7 @@ void UbloxNode::getRosParams() {
   nh->param("dynamic_model", dynamic_model_, std::string("portable"));
   nh->param("fix_mode", fix_mode_, std::string("auto"));
   getRosUint("dr_limit", dr_limit_, 0); // Dead reckoning limit
+  getRosUint("wkn_rollover", wkn_rollover_, 0);
 
   if (enable_ppp_)
     ROS_WARN("Warning: PPP is enabled - this is an expert setting.");
@@ -321,10 +322,13 @@ void UbloxNode::subscribe() {
   nh->param("publish/tim/tm2", enabled["tim_tm2"], enabled["tim"]);
   ROS_INFO("TIM-TM2 is Enabled: %u", enabled["tim_tm2"]);
   // Subscribe to TIM-TM2 messages (Time mark)
-  if (enabled["tim_tm2"])
+  if (enabled["tim_tm2"]) {
     gps.subscribe<ublox_msgs::TimTM2>(boost::bind(
       publish<ublox_msgs::TimTM2>, _1, "timtm2"), kSubscribeRate);
-      //&TimProduct::callbackTimTM2, this, _1), kSubscribeRate);
+    // Also publish ROS TimeReference
+    gps.subscribe<ublox_msgs::TimTM2>(boost::bind(
+      &UbloxNode::callbackTimTM2, this, _1), kSubscribeRate);
+  }
 
   for(int i = 0; i < components_.size(); i++)
     components_[i]->subscribe();
@@ -451,6 +455,12 @@ bool UbloxNode::configureUblox() {
       throw std::runtime_error(std::string("Failed to ") +
                                ((enable_ppp_) ? "enable" : "disable")
                                + " PPP.");
+    if (!gps.setWknRollover(wkn_rollover_))
+    {
+      std::stringstream ss;
+      ss << "Failed to set wknRollover: " << wkn_rollover_ << ".";
+      throw std::runtime_error(ss.str());
+    }
     if (!gps.setDynamicModel(dmodel_))
       throw std::runtime_error("Failed to set model: " + dynamic_model_ + ".");
     if (!gps.setFixMode(fmode_))
@@ -1474,6 +1484,8 @@ void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
       imu_data = esfRawBlock.data;
       sensor_time = esfRawBlock.sTtag;
 
+      ROS_INFO("sensor_time: %u  this_sensor_time: %u", sensor_time, this_sensor_time);
+
       if (this_sensor_time == 0) {
         this_sensor_time = sensor_time;
       } else if (this_sensor_time != sensor_time) {
@@ -1486,6 +1498,7 @@ void AdrUdrProduct::callbackEsfRAW(const ublox_msgs::EsfRAW &m) {
           sensor_time - this_sensor_time;
         imu_raw_.header.stamp +=
           ros::Duration(0, sample_duration * nsPerImuRawTick);
+        ROS_INFO("sample_duration: %u sec: %u nsec: %u", sample_duration, imu_raw_.header.stamp.sec,imu_raw_.header.stamp.nsec);
         this_sensor_time = sensor_time;
         updater->force_update();
       }
