@@ -49,7 +49,12 @@ target_link_libraries(ublox_gps_node boost_system boost_regex boost_thread)
 target_link_libraries(ublox_gps_node ${catkin_LIBRARIES})
 target_link_libraries(ublox_gps_node ublox_gps)
 
-install(TARGETS ublox_gps ublox_gps_node
+add_executable(rtklibsrv src/rtklibsrv.cpp)
+target_link_libraries(rtklibsrv boost_system boost_regex boost_thread)
+target_link_libraries(rtklibsrv ${catkin_LIBRARIES})
+target_link_libraries(rtklibsrv ublox_gps)
+
+install(TARGETS ublox_gps ublox_gps_node rtklibsrv
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

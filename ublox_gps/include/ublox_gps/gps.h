@@ -293,14 +293,21 @@ class Gps {
   bool setUseAdr(bool enable);
 
   /**
+   * @brief Set Week Number Rollover period (GPS is limited to 1024 weeks)
+   * @param wknRollover number of weeks from 6 Jan 1980 to first valid week (can be larger than 1024).
+   * @return true on ACK, false on other conditions.
+   */
+  bool setWknRollover(uint16_t wknRollover);
+
+  /**
    * @brief Enable or disable ADR (automotive dead reckoning).
    * @param enable If true, enable ADR.
    * @return true on ACK, false on other conditions.
    */
   bool setHnrPVT(uint8_t rate);
- 
+
   /**
-   * @brief Configure the U-Blox to UTC time 
+   * @brief Configure the U-Blox to UTC time
    * @return true on ACK, false on other conditions.
    *
    * @note This is part of the expert settings. It is recommended you check
@@ -317,21 +324,21 @@ class Gps {
    * the ublox manual first.
    */
   bool setTimtm2(uint8_t rate);
-  
+
   /**
    * @brief Enable or disable Time Pulse
-   * @param frequency of time pulse, if 0 disables time pulse 
+   * @param frequency of time pulse, if 0 disables time pulse
    * @return true on ACK, false on other conditions.
    */
   bool setTimePulse(uint8_t tp_ch, uint32_t freqPeriod);
   /**
    * @brief Enable or disable Time Pulse
-   * @param frequency of time pulse with no lock, if 0 disables time pulse 
-   * @param frequency of time pulse with a lock, if 0 disables time pulse 
+   * @param frequency of time pulse with no lock, if 0 disables time pulse
+   * @param frequency of time pulse with a lock, if 0 disables time pulse
    * @return true on ACK, false on other conditions.
    */
   bool setTimePulse(uint8_t tp_ch, uint32_t freqPeriod, uint32_t freqPeriodLock);
- 
+
   /**
    * @brief Configure the U-Blox send rate of the message & subscribe to the
    * given message
