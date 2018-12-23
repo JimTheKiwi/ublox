@@ -19,6 +19,9 @@ The `ublox_gps` node supports the following parameters for all products and firm
 * `uart1/baudrate`: Bit rate of the serial communication. Defaults to 9600.
 * `uart1/in`: UART1 in communication protocol. Defaults to UBX, NMEA & RTCM. See `CfgPRT` message for possible values.
 * `uart1/out`: UART1 out communication protocol. Defaults to UBX, NMEA & RTCM. See `CfgPRT` message for possible values.
+* `usb/tx_ready`: USB out communication protocol. Defaults to UBX, NMEA & RTCM. See `CfgPRT` message for possible values.
+* `usb/in`: USB in communication protocol. Defaults to UBX, NMEA & RTCM. See `CfgPRT` message for possible values.
+* `usb/out`: USB out communication protocol. Defaults to UBX, NMEA & RTCM. See `CfgPRT` message for possible values.
 * `frame_id`: ROS name prepended to frames produced by the node. Defaults to `gps`.
 * `rate`: Rate in Hz of measurements. Defaults to 4.
 * `nav_rate`: How often navigation solutions are published in number of measurement cycles. Defaults to 1.
