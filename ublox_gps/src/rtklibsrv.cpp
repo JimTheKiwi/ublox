@@ -29,6 +29,7 @@
 #include <ublox_msgs/ublox_msgs.h>
 
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/poll.h>
 #include <errno.h>
 #include <stdio.h>
@@ -170,13 +171,16 @@ DECLARE_UBLOX_RTKLIB_MESSAGE(ublox_msgs, RxmSFRB);
 DECLARE_UBLOX_RTKLIB_MESSAGE(ublox_msgs, RxmRAWX);
 DECLARE_UBLOX_RTKLIB_MESSAGE(ublox_msgs, RxmSFRBX);
 
+// Not handled by standard RTKLIB but Events handled by rtkexplorer fork.
+DECLARE_UBLOX_RTKLIB_MESSAGE(ublox_msgs, TimTM2);
+
 //TODO Not handled by RTKLIB, but useful for testing on M8U
 DECLARE_UBLOX_RTKLIB_MESSAGE(ublox_msgs, NavPVT);
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "rtklibsrv");
   nh.reset(new ros::NodeHandle("~"));
-  nh->param("port", port_, 8890);
+  nh->param("port", port_, 52010);
 
   // Set up TCP listener
   if ((socketId = socket(AF_INET, SOCK_STREAM, 0)) <= 0) {
@@ -185,7 +189,12 @@ int main(int argc, char** argv) {
   }
   int on = 1;
   if (setsockopt(socketId, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)) < 0) {
-    ROS_ERROR("setsockopt failed");
+    ROS_ERROR("setsockopt SO_REUSEADDR failed");
+    close(socketId);
+    exit(EXIT_FAILURE);
+  }
+  if (setsockopt(socketId, IPPROTO_TCP, TCP_NODELAY, (char *)&on, sizeof(on)) < 0) {
+    ROS_ERROR("setsockopt TCP_NODELAY failed");
     close(socketId);
     exit(EXIT_FAILURE);
   }
@@ -220,6 +229,7 @@ int main(int argc, char** argv) {
   SUBSCRIBE_RTKLIB("rxmsfrb", RxmSFRB);
   SUBSCRIBE_RTKLIB("rxmrawx", RxmRAWX);
   SUBSCRIBE_RTKLIB("rxmsfrbx", RxmSFRBX);
+  SUBSCRIBE_RTKLIB("timtm2", TimTM2);
 
   SUBSCRIBE_RTKLIB("navpvt", NavPVT);
 
