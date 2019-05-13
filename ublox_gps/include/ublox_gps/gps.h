@@ -86,6 +86,26 @@ class Gps {
   }
 
   /**
+   * @brief Open the log of bytes sent to the u-blox
+   * @param filename the name of the log file to append to
+   */
+  void openSentLog(const std::string filename)
+    {
+      ROS_DEBUG("Gps::openSentLog()");
+      if (worker_) worker_->openSentLog(filename);
+    }
+
+  /**
+   * @brief Open the log of bytes received from the u-blox
+   * @param filename the name of the log file to append to
+   */
+  void openRecvLog(const std::string filename)
+    {
+      ROS_DEBUG("Gps::openRecvLog()");
+      if (worker_) worker_->openRecvLog(filename);
+    }
+
+  /**
    * @brief Initialize TCP I/O.
    * @param host the TCP host
    * @param port the TCP port

@@ -37,6 +37,7 @@
 #include <boost/thread.hpp>
 #include <boost/thread/condition.hpp>
 
+#include <fstream>
 
 #include "worker.h"
 
@@ -55,7 +56,7 @@ class AsyncWorker : public Worker {
 
   /**
    * @brief Construct an Asynchronous I/O worker.
-   * @param stream the stream for th I/O service
+   * @param stream the stream for the I/O service
    * @param io_service the I/O service
    * @param buffer_size the size of the input and output buffers
    */
@@ -83,6 +84,28 @@ class AsyncWorker : public Worker {
   void wait(const boost::posix_time::time_duration& timeout);
 
   bool isOpen() const { return stream_->is_open(); }
+
+  /**
+   * @brief Open the log of bytes sent to the u-blox
+   * @param filename the name of the log file to append to
+   */
+  void openSentLog(const std::string filename)
+    {
+      ROS_DEBUG("Worker::openSentLog()");
+      sentLog.open(filename, std::ios::binary); // | std::ios::app);
+      ROS_DEBUG("Worker::openSentLog() after open()");
+    }
+
+  /**
+   * @brief Open the log of bytes received from the u-blox
+   * @param filename the name of the log file to append to
+   */
+  void openRecvLog(const std::string filename)
+    {
+      ROS_DEBUG("Worker::openRecvLog()");
+      recvLog.open(filename, std::ios::binary); // | std::ios::app);
+      ROS_DEBUG("Worker::openrecvLog() after open()");
+    }
 
  protected:
   /**
@@ -125,6 +148,8 @@ class AsyncWorker : public Worker {
   Callback read_callback_; //!< Callback function to handle received messages
 
   bool stopping_; //!< Whether or not the I/O service is closed
+
+  std::ofstream sentLog, recvLog;
 };
 
 template <typename StreamT>
@@ -188,6 +213,10 @@ void AsyncWorker<StreamT>::doWrite() {
       oss << boost::format("%02x") % static_cast<unsigned int>(*it) << " ";
     ROS_DEBUG("U-Blox sent %li bytes: \n%s", out_.size(), oss.str().c_str());
   }
+
+  if (this->sentLog.is_open())
+    this->sentLog.write((const char*)out_.data(), out_.size());
+
   // Clear the buffer & unlock
   out_.clear();
   write_condition_.notify_all();
@@ -196,6 +225,13 @@ void AsyncWorker<StreamT>::doWrite() {
 template <typename StreamT>
 void AsyncWorker<StreamT>::doRead() {
   ScopedLock lock(read_mutex_);
+  //TODO Largest valid UBX message I'm aware of is F9 RxmRAWX which is 16+184*32 = 5904 bytes, so with an 8k bufer in_.size() then in_ falling to less than 2k free should never happen unless we have a corrupted message length.
+  if (debug >= 4 || in_.size() - in_buffer_size_ <= 2048) {
+    ROS_DEBUG("ublox_gps::AsyncWorker::doRead() in_.size() %li in_buffer_size_ %li bytes already used, reading into remaining %li bytes", in_.size(), in_buffer_size_, in_.size() - in_buffer_size_);
+  }
+  //TODO Need to guard against serial corruption causing a message random length up to 64k, if it is greater than the 8k buffer size that will cause infinite spin as serialization.h Reader waits for the message to finish and AsyncWorker keeps reading into a buffer with 0 bytes remaining.
+  //TODO Ideally should be able to use the size information compiled into the template (fixed size messages) or hand-coded into serialization.h for the variable sized messages (usually with repeating group) to know the bytes in the fixed part, the bytes in the repeating group and a maximum number of repeats, then closely sanity check the length.
+  //TODO When this failure or a checksum failure is detected should discard not the whole message but just the 2 byte sync and search again for the sync to avoid a shortened message discarding following valid messages since the corrupted length is greater than the shortened actual bytes received.
   stream_->async_read_some(
       boost::asio::buffer(in_.data() + in_buffer_size_,
                           in_.size() - in_buffer_size_),
@@ -224,6 +260,11 @@ void AsyncWorker<StreamT>::readEnd(const boost::system::error_code& error,
       ROS_DEBUG("U-Blox received %li bytes \n%s", bytes_transfered,
                oss.str().c_str());
     }
+
+    if (this->recvLog.is_open())
+      this->recvLog.write(
+        (const char*)in_.data() + in_buffer_size_ - bytes_transfered,
+        (std::streamsize)bytes_transfered);
 
     if (read_callback_)
       read_callback_(in_.data(), in_buffer_size_);

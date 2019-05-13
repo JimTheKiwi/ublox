@@ -112,6 +112,10 @@ std::map<std::string, bool> enabled;
 std::string frame_id;
 //! The interface where the GPS is plugged into
 std::string interface_;
+//! The filename of the log of bytes sent to the u-blox
+std::string sent_log_;
+//! The filename of the log of bytes received from the u-blox
+std::string recv_log_;
 //! The fix status service type, set in the Firmware Component
 //! based on the enabled GNSS
 int fix_status_service;

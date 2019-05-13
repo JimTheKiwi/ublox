@@ -65,6 +65,18 @@ class Worker {
    * @brief Whether or not the I/O stream is open.
    */
   virtual bool isOpen() const = 0;
+
+  /**
+   * @brief Open the log of bytes sent to the u-blox
+   * @param filename the name of the log file to append to
+   */
+  virtual void openSentLog(const std::string filename) = 0;
+
+  /**
+   * @brief Open the log of bytes received from the u-blox
+   * @param filename the name of the log file to append to
+   */
+  virtual void openRecvLog(const std::string filename) = 0;
 };
 
 }  // namespace ublox_gps

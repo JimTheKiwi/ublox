@@ -124,6 +124,10 @@ void UbloxNode::addProductInterface(std::string product_category,
 void UbloxNode::getRosParams() {
   nh->param("interface", interface_, std::string("ttyACM0"));
   nh->param("device", device_, std::string("/dev/ttyACM0"));
+  nh->param("sent_log", sent_log_, std::string(""));
+  ROS_DEBUG("UbloxNode::getRosParams() sent_log: %s", sent_log_.c_str());
+  nh->param("recv_log", recv_log_, std::string(""));
+  ROS_DEBUG("UbloxNode::getRosParams() recv_log: %s", recv_log_.c_str());
   nh->param("frame_id", frame_id, std::string("gps"));
   ROS_DEBUG("device name: %s", device_.c_str());
   // Save configuration parameters
@@ -581,6 +585,11 @@ void UbloxNode::initializeIo() {
   } else {
     gps.initializeSerial(device_, baudrate_, uart_in_, uart_out_);
   }
+  ROS_DEBUG("UbloxNode::initializeIo() Checking sent_log and recv_log");
+  if (nh->hasParam("sent_log"))
+    gps.openSentLog(sent_log_);
+  if (nh->hasParam("recv_log"))
+    gps.openRecvLog(recv_log_);
 }
 
 void UbloxNode::initialize() {
