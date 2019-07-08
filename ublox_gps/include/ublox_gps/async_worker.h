@@ -41,9 +41,6 @@
 
 #include "worker.h"
 
-// For header byte values and checksum calculation
-#include <ublox/serialization.h>
-
 namespace ublox_gps {
 
 int debug; //!< Used to determine which debug messages to display
@@ -228,71 +225,6 @@ void AsyncWorker<StreamT>::doWrite() {
 template <typename StreamT>
 void AsyncWorker<StreamT>::doRead() {
   ScopedLock lock(read_mutex_);
-
-  uint16_t skip_bytes = 0;
-  do {
-    // Duplicate some ublox::Reader logic to reduce risk of buffering errors
-    ublox::Reader reader(in_.data(), in_buffer_size_);
-
-    skip_bytes = 0;
-    if (in_buffer_size_ >= ublox::kHeaderLength) {
-      uint32_t message_length = reader.length();
-      //TODO Ideally should be able to use the size information compiled into
-      //TODO the template (fixed size messages) or hand-coded into
-      //TODO serialization.h for the variable sized messages (usually with
-      //TODO repeating group) to know the bytes in the fixed part, the bytes
-      //TODO in the repeating group and a maximum number of repeats,
-      //TODO then can closely sanity check the message length for valid values.
-
-      // For now, range check the largest message F9 RxmRAWX 16+184*32 = 5904
-      // Guard against serial corruption causing a message random length
-      // up to 64k, if it is greater than the 8k buffer size that will
-      // cause infinite spin as serialization.h Reader waits for the
-      // message to finish and AsyncWorker keeps reading into a buffer
-      // with 0 bytes remaining.
-      if (message_length > 6000) { // Invalid length that will overflow in_
-        ROS_DEBUG("U-Blox AsyncWorker invalid length error: 0x%02x / 0x%02x length 0x%04x",
-          reader.classId(), reader.messageId(), message_length);
-        skip_bytes = 2; // Discard ONLY this header and look for the next
-      } else if (in_buffer_size_ >= // Complete message size
-        message_length + ublox::kHeaderLength + ublox::kChecksumLength) {
-        // Check for invalid checksum BEFORE consuming whole message from in_
-        uint16_t chk;
-        if (ublox::calculateChecksum(in_.data() + 2, message_length + 4, chk) !=
-          reader.checksum()) {
-          ROS_DEBUG("U-Blox AsyncWorker read checksum error: 0x%02x / 0x%02x length 0x%04x checksum 0x%04x",
-            reader.classId(), reader.messageId(), message_length, reader.checksum());
-          skip_bytes = 2; // Discard ONLY this header and look for the next
-          // When bytes are lost from one message the length is too high,
-          // guard against the start of the following message being discarded.
-        }
-      }
-    }
-
-    // Remove non-UBX content from the start of the buffer
-    // after skipping any bytes already skipped above.
-    for (uint8_t *byte = in_.data()+skip_bytes; skip_bytes < in_buffer_size_; ++byte, ++skip_bytes) {
-      if (byte[0] == ublox::DEFAULT_SYNC_A &&
-          (skip_bytes == in_buffer_size_-1 || byte[1] == ublox::DEFAULT_SYNC_B))
-        // Do not skip the last byte if it is DEFAULT_SYNC_A
-        break;
-    }
-
-    if (skip_bytes > 0) {
-      if (debug >= 2) {
-        // Print the skipped bytes
-        std::ostringstream oss;
-        for (uint8_t *byte = in_.data(); byte <= in_.data()+skip_bytes; ++byte)
-          oss << boost::format("%02x") % static_cast<unsigned int>(*byte) << " ";
-        ROS_DEBUG("U-blox: AsyncWorker skipping %d bytes\n%s", skip_bytes,
-                 oss.str().c_str());
-      }
-      // delete skipped bytes from ASIO input buffer
-      std::copy(in_.data()+skip_bytes, in_.data()+in_buffer_size_, in_.data());
-      in_buffer_size_ -= skip_bytes;
-    }
-  } while (skip_bytes > 0);
-
   if (debug >= 4 || in_.size() - in_buffer_size_ <= 2048) {
     ROS_DEBUG("ublox_gps::AsyncWorker::doRead() in_.size() %li in_buffer_size_ %li bytes already used, reading into remaining %li bytes", in_.size(), in_buffer_size_, in_.size() - in_buffer_size_);
   }

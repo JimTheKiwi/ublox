@@ -204,22 +204,82 @@ class CallbackHandlers {
    */
   void readCallback(unsigned char* data, std::size_t& size) {
     ublox::Reader reader(data, size);
+    ublox::Reader::iterator skip_byte = reader.pos();
     // Read all U-Blox messages in buffer
-    while (reader.search() != reader.end() && reader.found()) {
-      if (debug >= 3) {
-        // Print the received bytes
-        std::ostringstream oss;
-        for (ublox::Reader::iterator it = reader.pos();
-             it != reader.pos() + reader.length() + 8; ++it)
-          oss << boost::format("%02x") % static_cast<unsigned int>(*it) << " ";
-        ROS_DEBUG("U-blox: reading %d bytes\n%s", reader.length() + 8, 
-                 oss.str().c_str());
+    while (reader.search() != reader.end()) {
+      // Do not call reader.found() until sure the whole message should be
+      // consumed because after found() returns true then search() will call
+      // next() which assumes the message length() is accurate, making it
+      // impossible to skip_sync() and search() the remainder.
+
+      // For debug also log any bytes NOT read
+      uint32_t skipped_bytes = reader.pos() - skip_byte;
+      if (skipped_bytes > 0) {
+        if (debug >= 2) {
+          // Print the skipped bytes
+          std::ostringstream oss;
+          for (; skip_byte < reader.pos(); ++skip_byte)
+            oss << boost::format("%02x") % static_cast<unsigned int>(*skip_byte) << " ";
+          ROS_DEBUG("U-blox: skipping %d bytes\n%s", skipped_bytes,
+                   oss.str().c_str());
+        }
       }
 
-      handle(reader);
+      // Reduce impact of corrupt data before a complete message is found().
+      if (reader.end() - reader.pos() >= ublox::kHeaderLength) {
+        //TODO Ideally should be able to use the size information compiled into
+        //TODO the template (fixed size messages) or hand-coded into
+        //TODO serialization.h for the variable sized messages (usually with
+        //TODO repeating group) to know the bytes in the fixed part, the bytes
+        //TODO in the repeating group and a maximum number of repeats,
+        //TODO then can closely check the message lengths for valid values.
+
+        // For now, range check the largest message F9 RxmRAWX 16+184*32 = 5904
+        // Guard against serial corruption causing a message length random
+        // up to 64k, if it is greater than the 8k buffer size that will
+        // cause infinite spin as this thread waits for the 8-64k message
+        // to be completely in the 8k buffer and AsyncWorker keeps reading
+        // into a buffer with 0 bytes remaining.
+        if (reader.length() > 6000) { // Invalid length that will overflow buffer
+          ROS_DEBUG("U-Blox: invalid length error: 0x%02x / 0x%02x length 0x%04x",
+            reader.classId(), reader.messageId(), reader.length());
+          reader.skip_sync(); // Discard ONLY this header and search() again
+        } else if (reader.end() - reader.pos() >= // Complete message size
+          reader.length() + ublox::kHeaderLength + ublox::kChecksumLength) {
+          // Check for invalid checksum BEFORE calling found()
+          uint16_t chk;
+          if (reader.checksum() !=
+            ublox::calculateChecksum(reader.pos()+2, reader.length()+4, chk)) {
+            ROS_DEBUG("U-Blox: read checksum error: 0x%02x / 0x%02x length 0x%04x checksum 0x%04x",
+              reader.classId(), reader.messageId(), reader.length(), reader.checksum());
+            reader.skip_sync(); // Discard ONLY this header and search() again
+            // When bytes are lost from one message the length() is too high,
+            // guard against the start of the following message being discarded.
+          }
+        }
+      }
+
+      if (reader.found()) {
+        if (debug >= 3) {
+          // Print the received bytes
+          std::ostringstream oss;
+          for (ublox::Reader::iterator it = reader.pos();
+               it != reader.pos() + reader.length() + 8; ++it)
+            oss << boost::format("%02x") % static_cast<unsigned int>(*it) << " ";
+          ROS_DEBUG("U-blox: reading %d bytes\n%s", reader.length() + 8,
+                   oss.str().c_str());
+        }
+        skip_byte += reader.length() + 8; // These bytes were read not skipped
+
+        handle(reader);
+      } else // not found()
+        if (skip_byte == reader.pos())
+          // search() found a header at pos(), and no bytes skipped above,
+          // implies at incomplete message at end of buffer so complete loop.
+          break;
     }
 
-    // delete read bytes from ASIO input buffer
+    // delete skipped+read bytes from ASIO input buffer
     std::copy(reader.pos(), reader.end(), data);
     size -= reader.pos() - data;
   }
