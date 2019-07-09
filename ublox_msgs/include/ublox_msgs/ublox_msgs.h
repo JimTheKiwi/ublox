@@ -91,6 +91,12 @@
 #include <ublox_msgs/MonGNSS.h>
 #include <ublox_msgs/MonHW.h>
 #include <ublox_msgs/MonHW6.h>
+#include <ublox_msgs/MonIO.h>
+#include <ublox_msgs/MonIO_Port.h>
+#include <ublox_msgs/MonMSGPP.h>
+#include <ublox_msgs/MonRXBUF.h>
+#include <ublox_msgs/MonSMGR.h>
+#include <ublox_msgs/MonTXBUF.h>
 #include <ublox_msgs/MonVER.h>
 
 #include <ublox_msgs/AidALM.h>
@@ -231,6 +237,11 @@ namespace Message {
   namespace MON {
     static const uint8_t GNSS = MonGNSS::MESSAGE_ID;
     static const uint8_t HW = MonHW::MESSAGE_ID;
+    static const uint8_t IO = MonIO::MESSAGE_ID;
+    static const uint8_t MSGPP = MonMSGPP::MESSAGE_ID;
+    static const uint8_t RXBUF = MonRXBUF::MESSAGE_ID;
+    static const uint8_t SMGR = MonSMGR::MESSAGE_ID;
+    static const uint8_t TXBUF = MonTXBUF::MESSAGE_ID;
     static const uint8_t VER = MonVER::MESSAGE_ID;
   }
 

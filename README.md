@@ -190,6 +190,11 @@ To publish a given u-blox message to a ROS topic, set the parameter shown below 
 ### MON messages
 * `publish/mon/all`: This is the default value for the `publish/mon/<message>` parameters below. It defaults to `publish/all`. Individual messages can be enabled or disabled by setting the parameters below.
 * `publish/mon/hw`: Topic `~monhw`
+* `publish/mon/io`: Topic `~monio`
+* `publish/mon/msgpp`: Topic `~monmsgpp`
+* `publish/mon/rxbuf`: Topic `~monrxbuf`
+* `publish/mon/smgr`: Topic `~monsmgr`
+* `publish/mon/txbuf`: Topic `~montxbuf`
 
 ### NAV messages
 * `publish/nav/all`: This is the default value for the `publish/mon/<message>` parameters below. It defaults to `publish/all`. Individual messages can be enabled or disabled by setting the parameters below.

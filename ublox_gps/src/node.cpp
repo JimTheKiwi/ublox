@@ -322,6 +322,32 @@ void UbloxNode::subscribe() {
     gps.subscribe<ublox_msgs::AidHUI>(boost::bind(
         publish<ublox_msgs::AidHUI>, _1, "aidhui"), kSubscribeRate);
 
+  // MON messages
+  nh->param("publish/mon/io", enabled["mon_io"], enabled["mon"]);
+  if (enabled["mon_io"])
+    gps.subscribe<ublox_msgs::MonIO>(boost::bind(
+        publish<ublox_msgs::MonIO>, _1, "monio"), kSubscribeRate);
+
+  nh->param("publish/mon/msgpp", enabled["mon_msgpp"], enabled["mon"]);
+  if (enabled["mon_msgpp"])
+    gps.subscribe<ublox_msgs::MonMSGPP>(boost::bind(
+        publish<ublox_msgs::MonMSGPP>, _1, "monmsgpp"), kSubscribeRate);
+
+  nh->param("publish/mon/rxbuf", enabled["mon_rxbuf"], enabled["mon"]);
+  if (enabled["mon_rxbuf"])
+    gps.subscribe<ublox_msgs::MonRXBUF>(boost::bind(
+        publish<ublox_msgs::MonRXBUF>, _1, "monrxbuf"), kSubscribeRate);
+
+  nh->param("publish/mon/smgr", enabled["mon_smgr"], enabled["mon"]);
+  if (enabled["mon_smgr"])
+    gps.subscribe<ublox_msgs::MonSMGR>(boost::bind(
+        publish<ublox_msgs::MonSMGR>, _1, "monsmgr"), kSubscribeRate);
+
+  nh->param("publish/mon/txbuf", enabled["mon_txbuf"], enabled["mon"]);
+  if (enabled["mon_txbuf"])
+    gps.subscribe<ublox_msgs::MonTXBUF>(boost::bind(
+        publish<ublox_msgs::MonTXBUF>, _1, "montxbuf"), kSubscribeRate);
+
   // TIM messages supported by all(?) receivers (at least firmware 6, 7 and 8)
   nh->param("publish/tim/tm2", enabled["tim_tm2"], enabled["tim"]);
   ROS_INFO("TIM-TM2 is Enabled: %u", enabled["tim_tm2"]);

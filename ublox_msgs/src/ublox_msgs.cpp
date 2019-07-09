@@ -166,6 +166,16 @@ DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::MON, ublox_msgs::Message::MON::HW,
                       ublox_msgs, MonHW);
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::MON, ublox_msgs::Message::MON::HW, 
                       ublox_msgs, MonHW6);
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::MON, ublox_msgs::Message::MON::IO,
+                      ublox_msgs, MonIO);
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::MON, ublox_msgs::Message::MON::MSGPP,
+                      ublox_msgs, MonMSGPP);
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::MON, ublox_msgs::Message::MON::RXBUF,
+                      ublox_msgs, MonRXBUF);
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::MON, ublox_msgs::Message::MON::SMGR,
+                      ublox_msgs, MonSMGR);
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::MON, ublox_msgs::Message::MON::TXBUF,
+                      ublox_msgs, MonTXBUF);
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::MON, ublox_msgs::Message::MON::VER, 
                       ublox_msgs, MonVER);
 
