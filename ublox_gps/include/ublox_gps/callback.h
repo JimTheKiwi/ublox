@@ -206,11 +206,14 @@ class CallbackHandlers {
     ublox::Reader reader(data, size);
     ublox::Reader::iterator skip_byte = reader.pos();
     // Read all U-Blox messages in buffer
-    while (reader.search() != reader.end()) {
+    while (reader.end() - reader.pos() >= ublox::kHeaderLength) {
       // Do not call reader.found() until sure the whole message should be
       // consumed because after found() returns true then search() will call
       // next() which assumes the message length() is accurate, making it
       // impossible to skip_sync() and search() the remainder.
+
+      reader.search(); // Ensure .pos() on a header, or .end()
+        // or .end()-1 with the last byte being the first byte of a header
 
       // For debug also log any bytes NOT read
       uint32_t skipped_bytes = reader.pos() - skip_byte;
@@ -261,7 +264,7 @@ class CallbackHandlers {
 
       if (reader.found()) {
         if (debug >= 3) {
-          // Print the received bytes
+          // Print the read bytes
           std::ostringstream oss;
           for (ublox::Reader::iterator it = reader.pos();
                it != reader.pos() + reader.length() + 8; ++it)
@@ -275,8 +278,9 @@ class CallbackHandlers {
       } else // not found()
         if (skip_byte == reader.pos())
           // search() found a header at pos(), and no bytes skipped above,
-          // implies at incomplete message at end of buffer so complete loop.
+          // implies at incomplete message at end of buffer so exit loop.
           break;
+        // else we have bytes skipped not yet output to debug, loop again
     }
 
     // delete skipped+read bytes from ASIO input buffer
