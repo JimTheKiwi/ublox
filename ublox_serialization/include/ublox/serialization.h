@@ -239,10 +239,8 @@ class Reader {
    * or invalid length (if it is greater than the buffer size that can cause infinite loop).
    */
   iterator skip_sync() {
-    if (found()) {
-      uint32_t size = 2;
-      data_ += size; count_ -= size;
-    }
+    uint32_t size = 2;
+    data_ += size; count_ -= size;
     found_ = false;
     return data_;
   }
