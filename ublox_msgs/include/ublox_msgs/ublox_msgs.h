@@ -33,6 +33,7 @@
 #include <ublox_msgs/NavCLOCK.h>
 #include <ublox_msgs/NavDGPS.h>
 #include <ublox_msgs/NavDOP.h>
+#include <ublox_msgs/NavEOE.h>
 #include <ublox_msgs/NavPOSECEF.h>
 #include <ublox_msgs/NavPOSLLH.h>
 #include <ublox_msgs/NavRELPOSNED.h>
@@ -162,6 +163,7 @@ namespace Message {
     static const uint8_t CLOCK = NavCLOCK::MESSAGE_ID;
     static const uint8_t DGPS = NavDGPS::MESSAGE_ID;
     static const uint8_t DOP = NavDOP::MESSAGE_ID;
+    static const uint8_t EOE = NavEOE::MESSAGE_ID;
     static const uint8_t POSECEF = NavPOSECEF::MESSAGE_ID;
     static const uint8_t POSLLH = NavPOSLLH::MESSAGE_ID;
     static const uint8_t RELPOSNED = NavRELPOSNED::MESSAGE_ID;

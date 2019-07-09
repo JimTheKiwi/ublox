@@ -260,6 +260,11 @@ void UbloxNode::subscribe() {
     gps.subscribe<ublox_msgs::NavSTATUS>(boost::bind(
         publish<ublox_msgs::NavSTATUS>, _1, "navstatus"), kSubscribeRate);
 
+  nh->param("publish/nav/eoe", enabled["nav_eoe"], enabled["nav"]);
+  if (enabled["nav_eoe"])
+    gps.subscribe<ublox_msgs::NavEOE>(boost::bind(
+        publish<ublox_msgs::NavEOE>, _1, "naveoe"), kSubscribeRate);
+
   nh->param("publish/nav/posecef", enabled["nav_posecef"], enabled["nav"]);
   if (enabled["nav_posecef"])
     gps.subscribe<ublox_msgs::NavPOSECEF>(boost::bind(
