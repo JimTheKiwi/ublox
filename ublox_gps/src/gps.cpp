@@ -545,6 +545,7 @@ bool Gps::setTimePulse(uint8_t tp_ch, uint32_t freqPeriod, uint32_t freqPeriodLo
 
   ublox_msgs::CfgTP5 msg;
 
+  //TODO Move all hard-coded features of CfgTP5 timepulse into params
   msg.tpIdx = tp_ch;
   msg.version = 1;
   msg.antCableDelay = 50;
@@ -564,6 +565,20 @@ bool Gps::setTimePulse(uint8_t tp_ch, uint32_t freqPeriod, uint32_t freqPeriodLo
     CfgTP5::FLAGS_POLARITY |
     CfgTP5::FLAGS_GRID_UTC_GNSS_UTC;
   ROS_DEBUG("msg flags set to: %#x", msg.flags);
+
+  return configure(msg);
+}
+
+bool Gps::setTxSlots(uint8_t enable, uint8_t refTp, uint32_t end0, uint32_t end1, uint32_t end2) {
+  ROS_DEBUG("setTxSlots(0x%x,%u,%u,%u,%u)", enable, refTp, end0, end1, end2);
+
+  ublox_msgs::CfgTXSLOT msg;
+
+  msg.enable = enable;
+  msg.refTp = refTp;
+  msg.end[0] = end0;
+  msg.end[1] = end1;
+  msg.end[2] = end2;
 
   return configure(msg);
 }

@@ -1000,6 +1000,7 @@ class UbloxFirmware8 : public UbloxFirmware7Plus<ublox_msgs::NavPVT> {
   ublox_msgs::CfgNMEA cfg_nmea_;
   //! Whether to clear the flash memory during configuration
   bool clear_bbr_;
+  //TODO Add all features of CfgTP5 timepulse into ROS params
   // TimePulse without or with a lock, 0 to disable
   uint32_t tp_freq_nolock_, tp_freq_lock_;
 };
@@ -1104,28 +1105,30 @@ class FtsProduct: public virtual ComponentInterface {
    * @brief Get the FTS parameters.
    * @todo Currently unimplemented.
    */
-  void getRosParams() {
-    ROS_WARN("Functionality specific to u-blox FTS devices is %s",
-             "unimplemented. See FtsProduct class in node.h & node.cpp.");
-  }
+  void getRosParams();
 
   /**
    * @brief Configure FTS settings.
    * @todo Currently unimplemented.
    */
-  bool configureUblox() { return false; }
+  bool configureUblox();
 
   /**
    * @brief Subscribe to FTS messages.
    * @todo Currently unimplemented.
    */
-  void subscribe() {}
+  void subscribe();
 
   /**
    * @brief Adds diagnostic updaters for FTS status.
    * @todo Currently unimplemented.
    */
-  void initializeRosDiagnostics() {}
+  void initializeRosDiagnostics();
+
+ private:
+  // CfgTXSLOT parameters
+  uint8_t txSlotEnable_, txSlotRefTp_;
+  uint32_t txSlotEnd_[3];
 };
 
 /**

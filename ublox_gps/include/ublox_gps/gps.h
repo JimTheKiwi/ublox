@@ -347,17 +347,32 @@ class Gps {
 
   /**
    * @brief Enable or disable Time Pulse
-   * @param frequency of time pulse, if 0 disables time pulse
+   * @param tp_ch timepulse channel 0=TIMEPULSE, 1=TIMEPULSE2
+   * @param freqPeriod frequency of time pulse, if 0 disables time pulse
    * @return true on ACK, false on other conditions.
    */
   bool setTimePulse(uint8_t tp_ch, uint32_t freqPeriod);
   /**
    * @brief Enable or disable Time Pulse
-   * @param frequency of time pulse with no lock, if 0 disables time pulse
-   * @param frequency of time pulse with a lock, if 0 disables time pulse
+   * @param tp_ch timepulse channel 0=TIMEPULSE, 1=TIMEPULSE2
+   * @param freqPeriod frequency of time pulse with no lock, if 0 disables time pulse
+   * @param freqPeriodLock frequency of time pulse with a lock, if 0 disables time pulse
    * @return true on ACK, false on other conditions.
    */
   bool setTimePulse(uint8_t tp_ch, uint32_t freqPeriod, uint32_t freqPeriodLock);
+
+  /**
+   * @brief Enable or disable Transmitter Time Slots
+   * @param enable 5-bit mask for ports DDC=1,UART1=2,UART2=4,USB=8,SPI=16
+   * @param refTp 0=TIMEPULSE, 1=TIMEPULSE2 (2019:only TIMEPULSE2 supported)
+   * @param end0 ms after timepulse timeslot0 ends - no messages to be sent
+   * @param end1 ms after timepulse timeslot1 ends - only TOS message sent
+   * @param end2 ms after timepulse timeslot2 ends - all other messages
+   *    should finish before next timepulse, so allow time for the longest
+   *    message at current serial speed after this point
+   * @return true on ACK, false on other conditions.
+   */
+  bool setTxSlots(uint8_t enable, uint8_t refTp, uint32_t end0, uint32_t end1, uint32_t end2);
 
   /**
    * @brief Configure the U-Blox send rate of the message & subscribe to the

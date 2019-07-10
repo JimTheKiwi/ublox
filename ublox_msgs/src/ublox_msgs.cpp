@@ -151,10 +151,12 @@ DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::CFG, ublox_msgs::Message::CFG::RST,
                       ublox_msgs, CfgRST);
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::CFG, ublox_msgs::Message::CFG::TMODE3, 
                       ublox_msgs, CfgTMODE3);
-DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::CFG, ublox_msgs::Message::CFG::USB, 
-                      ublox_msgs, CfgUSB);
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::CFG, ublox_msgs::Message::CFG::TP5, 
                       ublox_msgs, CfgTP5);
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::CFG, ublox_msgs::Message::CFG::TXSLOT,
+                      ublox_msgs, CfgTXSLOT);
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::CFG, ublox_msgs::Message::CFG::USB,
+                      ublox_msgs, CfgUSB);
 
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::UPD, ublox_msgs::Message::UPD::SOS, 
                       ublox_msgs, UpdSOS);
@@ -204,7 +206,8 @@ DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::MGA, ublox_msgs::Message::MGA::GAL,
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::HNR, ublox_msgs::Message::HNR::PVT, 
                       ublox_msgs, HnrPVT);
 
-// TIM messages
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::TIM, ublox_msgs::Message::TIM::TM2,
 		      ublox_msgs, TimTM2);
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::TIM, ublox_msgs::Message::TIM::TOS,
+		      ublox_msgs, TimTOS);
 

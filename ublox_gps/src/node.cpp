@@ -353,7 +353,7 @@ void UbloxNode::subscribe() {
     gps.subscribe<ublox_msgs::MonTXBUF>(boost::bind(
         publish<ublox_msgs::MonTXBUF>, _1, "montxbuf"), kSubscribeRate);
 
-  // TIM messages supported by all(?) receivers (at least firmware 6, 7 and 8)
+  // TIM-TM2 messages supported by all(?) receivers (at least firmware 6, 7 and 8)
   nh->param("publish/tim/tm2", enabled["tim_tm2"], enabled["tim"]);
   ROS_INFO("TIM-TM2 is Enabled: %u", enabled["tim_tm2"]);
   // Subscribe to TIM-TM2 messages (Time mark)
@@ -1283,7 +1283,8 @@ bool UbloxFirmware8::configureUblox() {
   if (set_nmea_ && !gps.configure(cfg_nmea_))
     throw std::runtime_error("Failed to configure NMEA");
 
-  // TimePulse config
+  // TimePulse config, hard-coded to output channel 1=TIMEPULSE2
+  //TODO Add all features of CfgTP5 timepulse into ROS params
   if(!gps.setTimePulse(1, tp_freq_nolock_, tp_freq_lock_))
     throw std::runtime_error(std::string("Failed to enable timepulse"));
 
@@ -1861,6 +1862,45 @@ void HpgRovProduct::callbackNavRelPosNed(const ublox_msgs::NavRELPOSNED &m) {
 //
 // U-Blox Time Sync Products, partially implemented.
 //
+void FtsProduct::getRosParams() {
+  ROS_WARN("Functionality specific to u-blox FTS devices is %s",
+           "unimplemented. See FtsProduct class in node.h & node.cpp.");
+
+  // Tx Slot configuration
+  getRosUint("txslot/enable", txSlotEnable_, 0);  // Default no port enabled
+  getRosUint("txslot/reftp", txSlotRefTp_,
+    ublox_msgs::CfgTXSLOT::REFTP_TIMEPULSE2);
+    // Default to TIMEPULSE2 to match hard-coded channel 1 in TimePulse logic
+    // and due to this note in M8 Receiver Description section 26.6:
+    //   In current FTS products only TIMEPULSE2 can be used for pulse
+    //   generation.  Additionally, just 0.5 Hz, 1 Hz and 2 Hz time pulse output
+    //   is supported by current FTS products. Other output frequencies may be
+    //   configured with UBX-CFG-TP5 but are not guaranteed to work properly."
+
+    // Default slots to match example in M8 Receiver Description 26.7.1
+  getRosUint("txslot/end0", txSlotEnd_[0], 10);
+  getRosUint("txslot/end1", txSlotEnd_[1], 50);
+  getRosUint("txslot/end2", txSlotEnd_[2], 900);
+}
+
+bool FtsProduct::configureUblox() {
+  return false;  // Untested, I only have M8T which didn't support this
+  if(!gps.setTxSlots(txSlotEnable_, txSlotRefTp_,
+      txSlotEnd_[0], txSlotEnd_[1], txSlotEnd_[2]))
+    throw std::runtime_error(std::string("Failed to set Cfg-TxSlot"));
+  return true;
+}
+
+void FtsProduct::subscribe() {
+  if (enabled["tim_tos"])
+    gps.subscribe<ublox_msgs::TimTOS>(boost::bind(
+        publish<ublox_msgs::TimTOS>, _1, "timtos"), kSubscribeRate);
+}
+
+void FtsProduct::initializeRosDiagnostics() {
+}
+
+
 void TimProduct::getRosParams() {
 }
 

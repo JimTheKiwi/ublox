@@ -83,8 +83,9 @@
 #include <ublox_msgs/CfgRST.h>
 #include <ublox_msgs/CfgSBAS.h>
 #include <ublox_msgs/CfgTMODE3.h>
-#include <ublox_msgs/CfgUSB.h>
 #include <ublox_msgs/CfgTP5.h>
+#include <ublox_msgs/CfgTXSLOT.h>
+#include <ublox_msgs/CfgUSB.h>
 
 #include <ublox_msgs/UpdSOS.h>
 #include <ublox_msgs/UpdSOS_Ack.h>
@@ -115,6 +116,7 @@
 #include <ublox_msgs/HnrPVT.h>
 
 #include <ublox_msgs/TimTM2.h>
+#include <ublox_msgs/TimTOS.h>
 
 namespace ublox_msgs {
 
@@ -227,8 +229,9 @@ namespace Message {
     static const uint8_t RST = CfgRST::MESSAGE_ID;
     static const uint8_t SBAS = CfgSBAS::MESSAGE_ID;
     static const uint8_t TMODE3 = CfgTMODE3::MESSAGE_ID;
-    static const uint8_t USB = CfgUSB::MESSAGE_ID;
     static const uint8_t TP5 = CfgTP5::MESSAGE_ID;
+    static const uint8_t TXSLOT = CfgTXSLOT::MESSAGE_ID;
+    static const uint8_t USB = CfgUSB::MESSAGE_ID;
   }
 
   namespace UPD {
@@ -264,6 +267,7 @@ namespace Message {
 
   namespace TIM {
     static const uint8_t TM2 = TimTM2::MESSAGE_ID;
+    static const uint8_t TOS = TimTOS::MESSAGE_ID;
   }
 }
 
