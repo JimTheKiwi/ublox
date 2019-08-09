@@ -181,7 +181,7 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "rtklibsrv");
   nh.reset(new ros::NodeHandle("")); // Sharing namespace with a ublox_gps
   nh->param("tcpsrv_port", port_, 52010);
-  ROS_INFO("rtklibsrsv serving on port %d", port_);
+  ROS_INFO("rtklibsrv serving on port %d", port_);
 
   // Set up TCP listener
   if ((socketId = socket(AF_INET, SOCK_STREAM, 0)) <= 0) {
