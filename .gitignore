@@ -90,3 +90,5 @@ gen/*
 *.out
 *.app
 
+# gvim Swap files
+.*.sw[po]

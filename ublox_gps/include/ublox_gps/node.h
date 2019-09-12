@@ -116,6 +116,8 @@ std::string interface_;
 std::string sent_log_;
 //! The filename of the log of bytes received from the u-blox
 std::string recv_log_;
+std::string chrony_sock_;
+int leap_seconds_ = 0;
 //! The fix status service type, set in the Firmware Component
 //! based on the enabled GNSS
 int fix_status_service;
@@ -768,6 +770,10 @@ class UbloxFirmware7Plus : public UbloxFirmware {
    * @param m the message to publish
    */
   void callbackNavPvt(const NavPVT& m) {
+    // Capture time ASAP to minimize jitter
+    ros::Time arrivalTime = ros::Time::now();
+    // TODO Perhaps capture time earlier in async_worker.h and pass back.
+
     if(enabled["nav_pvt"]) {
       // NavPVT publisher
       static ros::Publisher publisher = nh->advertise<NavPVT>("navpvt",
@@ -788,11 +794,50 @@ class UbloxFirmware7Plus : public UbloxFirmware {
     if (((m.valid & valid_time) == valid_time) &&
         (m.flags2 & m.FLAGS2_CONFIRMED_AVAILABLE)) {
       // Use NavPVT timestamp since it is valid
-      fix.header.stamp.sec = toUtcSeconds(m);
-      fix.header.stamp.nsec = m.nano;
+      fix.header.stamp = ros::Time(toUtcSeconds(m), m.nano);
+      leap_seconds_ = round((m.iTOW % 3600000 - (m.min*60000 + m.sec*1000 + m.nano/1e6)) / 1000.0);
+      if (leap_seconds_ > 1800)
+        leap_seconds_ -= 3600;
+      if (leap_seconds_ < -1800)
+        leap_seconds_ += 3600;
+
+      if (chrony_sock_.length() > 0) {
+        // If a Chrony socket is specified then sync system clock to UTC
+        struct sock_sample {
+          unsigned int sec;
+          unsigned int usec;
+          double offset;
+          int pulse;
+          int leap;
+          int _pad;
+          int magic;
+        } sample;
+        sample.sec = arrivalTime.sec;
+        sample.usec = arrivalTime.nsec / 1000;
+        sample.offset = arrivalTime.toSec() - fix.header.stamp.toSec();
+        sample.pulse = 0;
+        sample.leap = 0;
+        sample._pad = 0;
+        sample.magic = 0x534f434b; // "SOCK"
+
+        std::ofstream chronySOCK;
+        chronySOCK.rdbuf()->pubsetbuf(NULL, 0);
+        chronySOCK.open(chrony_sock_, std::ios::out | std::ios::binary );
+        chronySOCK.write((char *)&sample,sizeof(sample));
+        chronySOCK.close();
+      }
+
+      static ros::Publisher timeRefUTCPublisher =
+        nh->advertise<sensor_msgs::TimeReference>("time_ref_utc", kROSQueueSize);
+      sensor_msgs::TimeReference time_ref_utc;
+      time_ref_utc.header.stamp = fix.header.stamp;
+      time_ref_utc.header.frame_id = frame_id;
+      time_ref_utc.time_ref = arrivalTime;
+      time_ref_utc.source = frame_id; //TODO set to fixType? Flags?
+      timeRefUTCPublisher.publish(time_ref_utc);
     } else {
       // Use ROS time since NavPVT timestamp is not valid
-      fix.header.stamp = ros::Time::now();
+      fix.header.stamp = arrivalTime;
     }
     // Set the LLA
     fix.latitude = m.lat * 1e-7; // to deg

@@ -247,6 +247,7 @@ void AsyncWorker<StreamT>::readEnd(const boost::system::error_code& error,
               bytes_transfered);
   } else if (bytes_transfered > 0) {
     in_buffer_size_ += bytes_transfered;
+    //TODO capture system time here for closest system time to message?
 
     if (debug >= 4) {
       std::ostringstream oss;

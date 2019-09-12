@@ -128,6 +128,7 @@ void UbloxNode::getRosParams() {
   ROS_DEBUG("UbloxNode::getRosParams() sent_log: %s", sent_log_.c_str());
   nh->param("recv_log", recv_log_, std::string(""));
   ROS_DEBUG("UbloxNode::getRosParams() recv_log: %s", recv_log_.c_str());
+  nh->param("chrony_sock", chrony_sock_, std::string(""));
   nh->param("frame_id", frame_id, std::string("gps"));
   ROS_DEBUG("device name: %s", device_.c_str());
   // Save configuration parameters
@@ -579,10 +580,11 @@ void UbloxNode::callbackTimTM2(const ublox_msgs::TimTM2 &m) {
     t_ref_.header.stamp = ros::Time::now();
     t_ref_.header.frame_id = frame_id;
 
-    // Assumes GPS epoch (not Galileo, Glonass or Beidu)
+    // Assumes GPS epoch (not Galileo, Glonass or Beidou)
     t_ref_.time_ref = ros::Time(
-      315964800 + // 1980-1-6 - 1970-1-1
-      m.wnR * 604800 + m.towMsR / 1000, // GPS week number (not mod 1024)
+      315964800 // 1980-1-6 - 1970-1-1
+      + m.wnR * 604800 // GPS week number (not mod 1024)
+      - leap_seconds_ + m.towMsR / 1000,
       (m.towMsR % 1000) * 1000000 + m.towSubMsR);
 
     std::ostringstream src;
