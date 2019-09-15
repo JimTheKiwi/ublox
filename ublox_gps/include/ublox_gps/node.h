@@ -804,27 +804,47 @@ class UbloxFirmware7Plus : public UbloxFirmware {
       if (chrony_sock_.length() > 0) {
         // If a Chrony socket is specified then sync system clock to UTC
         struct sock_sample {
-          unsigned int sec;
-          unsigned int usec;
+          struct timeval tv;
           double offset;
           int pulse;
           int leap;
           int _pad;
           int magic;
         } sample;
-        sample.sec = arrivalTime.sec;
-        sample.usec = arrivalTime.nsec / 1000;
+        sample.tv.tv_sec = arrivalTime.sec;
+        sample.tv.tv_usec = arrivalTime.nsec / 1000;
         sample.offset = arrivalTime.toSec() - fix.header.stamp.toSec();
         sample.pulse = 0;
         sample.leap = 0;
         sample._pad = 0;
         sample.magic = 0x534f434b; // "SOCK"
 
-        std::ofstream chronySOCK;
-        chronySOCK.rdbuf()->pubsetbuf(NULL, 0);
-        chronySOCK.open(chrony_sock_, std::ios::out | std::ios::binary );
-        chronySOCK.write((char *)&sample,sizeof(sample));
-        chronySOCK.close();
+        static struct sockaddr_un addr;
+        static int chrony_socket = 0;
+        int ret;
+        if (chrony_socket == 0)
+        { // Socket not connected
+          chrony_socket = socket(AF_UNIX, SOCK_DGRAM, 0);
+          if (chrony_socket == -1) {
+            ROS_ERROR("socket failed");
+            chrony_socket = 0;
+          }
+          if (chrony_socket) {
+            memset(&addr, 0, sizeof(struct sockaddr_un));
+            addr.sun_family = AF_UNIX;
+            strncpy(addr.sun_path, chrony_sock_.c_str(), sizeof(addr.sun_path) - 1);
+            ret = connect (chrony_socket, (const struct sockaddr *) &addr, sizeof(struct sockaddr_un));
+            if (ret == -1) {
+              ROS_ERROR("socket connect failed");
+            }
+          }
+        }
+        if (chrony_socket) {
+          ret = write(chrony_socket, &sample, sizeof(sample));
+          if (ret == -1) {
+            ROS_ERROR("socket write failed");
+          }
+        }
       }
 
       static ros::Publisher timeRefUTCPublisher =
@@ -1119,7 +1139,7 @@ class AdrUdrProduct: public virtual ComponentInterface {
    * @todo unimplemented
    */
   void initializeRosDiagnostics() {
-    
+
   }
 
   constexpr static int nsPerImuRawTick = 38776; /* from 256 * 100.74Hz */
@@ -1362,13 +1382,13 @@ class TimProduct: public virtual ComponentInterface {
    * @brief Get the Time Sync parameters.
    * @todo Currently unimplemented.
    */
-  void getRosParams(); 
- 
+  void getRosParams();
+
   /**
    * @brief Configure Time Sync settings.
    * @todo Currently unimplemented.
    */
-  bool configureUblox(); 
+  bool configureUblox();
 
   /**
    * @brief Subscribe to Time Sync messages.
