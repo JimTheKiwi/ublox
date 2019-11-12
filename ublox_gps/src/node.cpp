@@ -576,8 +576,8 @@ void UbloxNode::callbackTimTM2(const ublox_msgs::TimTM2 &m) {
 	nh->advertise<sensor_msgs::TimeReference>("interrupt_time", kROSQueueSize);
 
     // create time ref message and put in the data
-    t_ref_.header.seq = m.risingEdgeCount;
     t_ref_.header.stamp = ros::Time::now();
+    t_ref_.header.seq = m.risingEdgeCount;
     t_ref_.header.frame_id = frame_id;
 
     // Assumes GPS epoch (not Galileo, Glonass or Beidou)
@@ -589,10 +589,22 @@ void UbloxNode::callbackTimTM2(const ublox_msgs::TimTM2 &m) {
 
     std::ostringstream src;
     src << "TIM" << int(m.ch);
+    if (m.flags & m.FLAGS_TIME_VALID) {
+      uint8_t timeBase = m.flags & (m.FLAGS_TIMEBASE_GNSS | m.FLAGS_TIMEBASE_UTC);
+      if (timeBase == 0)
+        src << "RCV";
+      else if (timeBase == m.FLAGS_TIMEBASE_GNSS)
+        src << "GNS"; // offset from UTC by leap seconds.
+      else if (timeBase == m.FLAGS_TIMEBASE_UTC)
+        if (m.flags & m.FLAGS_UTC_AVAIL)
+          src << "UTC";
+        else
+          src << "UTU"; // In UTC when UTC unavailable? no leap seconds for 12 mins?
+      else // Both GNSS and UTC, an unknown valid type not in the documentation
+        src << "UNK"; // Should never happen?
+    } else
+      src << "INV"; // Invalid
     t_ref_.source = src.str();
-
-    t_ref_.header.stamp = ros::Time::now(); // create a new timestamp
-    t_ref_.header.frame_id = frame_id;
 
     // publisher.publish(m);
     time_ref_pub.publish(t_ref_);
