@@ -813,7 +813,9 @@ class UbloxFirmware7Plus : public UbloxFirmware {
         } sample;
         sample.tv.tv_sec = arrivalTime.sec;
         sample.tv.tv_usec = arrivalTime.nsec / 1000;
-        sample.offset = arrivalTime.toSec() - fix.header.stamp.toSec();
+        // NB: These terms the wrong way cause the time error to grow unbounded
+        sample.offset = fix.header.stamp.toSec() - arrivalTime.toSec();
+        //ROS_ERROR("%f", sample.offset);
         sample.pulse = 0;
         sample.leap = 0;
         sample._pad = 0;
